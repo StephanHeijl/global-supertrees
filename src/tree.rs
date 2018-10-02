@@ -64,7 +64,7 @@ impl Tree {
     }
 
     fn parse_tree_from_string(tree_string : String) -> (Tree, usize) {
-        //println!("{}", tree_string);
+        /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
         let mut branches = Vec::<Tree>::new();
         let mut leaf_distances = Vec::<f64>::new();
@@ -79,7 +79,6 @@ impl Tree {
 
         while c < tree_string.len() {
             chr = tree_string.chars().nth(c).unwrap();
-            //println!("{}={}", c, chr);
             c += 1;
 
             if chr == '(' {
