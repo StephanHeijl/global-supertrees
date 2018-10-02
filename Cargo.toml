@@ -1,0 +1,6 @@
+[package]
+name = "newick"
+version = "0.1.0"
+authors = ["Stephan Heijl <sheijl@bio-prodict.nl>"]
+
+[dependencies]
