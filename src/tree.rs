@@ -8,7 +8,9 @@ pub struct Tree {
     pub leaves: Vec<String>,
     pub branches: Vec<Tree>,
     pub leaf_distances: Vec<f64>,
-    pub branch_distances: Vec<f64>
+    pub branch_distances: Vec<f64>,
+    levels_from_root: usize
+
 }
 
 impl Tree {
@@ -64,7 +66,7 @@ impl Tree {
         children
     }
 
-    fn parse_tree_from_string(tree_string : String) -> (Tree, usize) {
+    fn parse_tree_from_string(tree_string : String, depth : usize) -> (Tree, usize) {
         /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
         let mut branches = Vec::<Tree>::new();
@@ -84,7 +86,7 @@ impl Tree {
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c ).collect();
-                let (branch, new_skip) = Tree::parse_tree_from_string(remainder);
+                let (branch, new_skip) = Tree::parse_tree_from_string(remainder, depth);
                 c += new_skip;
                 branches.push(branch);
                 branch_distances.push(f64::NAN);
@@ -144,14 +146,48 @@ impl Tree {
             leaves: leaves,
             branches: branches,
             leaf_distances: leaf_distances,
-            branch_distances: branch_distances
+            branch_distances: branch_distances,
+            levels_from_root: depth
         };
 
         return (tree, c);
     }
 
     pub fn parse(tree_string : String) -> Tree {
-        return Tree::parse_tree_from_string(tree_string).0;
+        return Tree::parse_tree_from_string(tree_string, 0).0;
+    }
+
+    pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f64>, branch_distances : Vec<f64>) -> Tree {
+
+        if (leaf_distances.len() > 0) & (leaf_distances.len() != leaves.len()) {
+            panic!("Leaf distances must be empty or correspond to the number of leaves.");
+        }
+
+        if (branch_distances.len() > 0) & (branch_distances.len() != branches.len()) {
+            panic!("Branch distances must be empty or correspond to the number of branches.");
+        }
+
+        if leaf_distances.len() == 0 {
+            let mut leaf_distances : Vec<f64> = Vec::new();
+            for _n in 0..branches.len() {
+                leaf_distances.push(f64::NAN);
+            }
+        }
+
+        if branch_distances.len() == 0 {
+            let mut branch_distances : Vec<f64> = Vec::new();
+            for _n in 0..branches.len() {
+                branch_distances.push(f64::NAN);
+            }
+        }
+
+        return Tree {
+            leaves,
+            branches,
+            leaf_distances,
+            branch_distances,
+            levels_from_root : 0
+        };
     }
 
     pub fn to_distance_matrix(&self)-> Array2<f64> {
