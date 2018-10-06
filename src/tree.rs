@@ -1,5 +1,6 @@
 use std::f64;
 use std::collections::HashMap;
+use ndarray::prelude::*;
 
 
 #[derive(Debug)]
@@ -151,6 +152,21 @@ impl Tree {
 
     pub fn parse(tree_string : String) -> Tree {
         return Tree::parse_tree_from_string(tree_string).0;
+    }
+
+    pub fn to_distance_matrix(&self)-> Array2<f64> {
+        let mut n_leaves = 0;
+        let mut n_non_leaf_nodes = 0;
+        for child in self.traverse_children() {
+            //println!("{:?}", child);
+            n_non_leaf_nodes += 1;
+            n_leaves += child[0].0.leaves.len();
+        }
+
+        let distance_matrix = Array::zeros((n_leaves, n_leaves).f());
+
+
+        distance_matrix
     }
 }
 
