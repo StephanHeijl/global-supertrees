@@ -86,7 +86,7 @@ impl Tree {
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c ).collect();
-                let (branch, new_skip) = Tree::parse_tree_from_string(remainder, depth);
+                let (branch, new_skip) = Tree::parse_tree_from_string(remainder, depth + 1);
                 c += new_skip;
                 branches.push(branch);
                 branch_distances.push(f64::NAN);
@@ -191,15 +191,57 @@ impl Tree {
     }
 
     pub fn to_distance_matrix(&self)-> Array2<f64> {
-        let mut n_leaves = 0;
-        let mut n_non_leaf_nodes = 0;
+        let mut n_leaves : usize = 0;
+        let mut n_non_leaf_nodes : usize = 0;
+        let mut max_depth = 0;
+        let mut leaf_map : HashMap<String, usize> = HashMap::new();
+
         for child in self.traverse_children() {
-            //println!("{:?}", child);
             n_non_leaf_nodes += 1;
-            n_leaves += child[0].0.leaves.len();
+
+            for leaf in child[0].0.leaves.iter() {
+                leaf_map.insert(leaf.clone(), n_leaves);
+                n_leaves += 1;
+            }
+            if child[0].0.levels_from_root > max_depth {
+                max_depth = child[0].0.levels_from_root;
+            }
         }
 
-        let distance_matrix = Array::zeros((n_leaves, n_leaves).f());
+        let mut distance_matrix : Array2<f64> = Array2::zeros((n_leaves, max_depth + 1));
+        let mut identity_matrix : Array2<i32> = Array2::zeros((n_leaves, max_depth + 1));
+
+        let mut finished_leaves : Vec<usize> = Vec::new();
+        let mut accumulated_distances : Vec<f64> = Vec::new();
+        let mut previous_level = 0;
+        let mut current_level = 0;
+        for child in self.traverse_children() {
+            let current_tree = child[0].0;
+            let branch_distance = child[0].1;
+
+            current_level = current_tree.levels_from_root;
+            if previous_level < current_level {
+                for _l in current_level..previous_level {
+                    accumulated_distances.pop();
+                }
+            }
+
+            accumulated_distances.push(*branch_distance);
+
+            for (i, leaf)in current_tree.leaves.iter().enumerate() {
+                let distance = current_tree.leaf_distances[i];
+                let leaf_id = leaf_map[leaf];
+                println!("{} - {}", current_level, leaf);
+                for l in 0..current_level {
+                    distance_matrix[[leaf_id, l]] = accumulated_distances[l];
+                }
+                distance_matrix[[leaf_id, current_level]] = current_tree.leaf_distances[i];
+                finished_leaves.push(leaf_id);
+            }
+
+            previous_level = current_level;
+
+        }
 
 
         distance_matrix
