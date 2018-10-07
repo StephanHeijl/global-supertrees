@@ -209,13 +209,15 @@ impl Tree {
         }
 
         let mut distance_matrix : Array2<f64> = Array2::zeros((n_leaves, max_depth + 1));
-        let mut identity_matrix : Array2<i32> = Array2::zeros((n_leaves, max_depth + 1));
+        let mut identity_matrix : Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
 
         let mut finished_leaves : Vec<usize> = Vec::new();
         let mut accumulated_distances : Vec<f64> = Vec::new();
+        let mut internal_nodes : Vec<usize> = Vec::new();
         let mut previous_level = 0;
         let mut current_level = 0;
-        for child in self.traverse_children() {
+
+        for (c, child) in self.traverse_children().iter().enumerate() {
             let current_tree = child[0].0;
             let branch_distance = child[0].1;
 
@@ -223,26 +225,34 @@ impl Tree {
             if previous_level < current_level {
                 for _l in current_level..previous_level {
                     accumulated_distances.pop();
+                    internal_nodes.pop();
                 }
             }
 
-            accumulated_distances.push(*branch_distance);
+            if (*branch_distance).is_nan() {
+                accumulated_distances.push(0.0);
+            } else {
+                accumulated_distances.push(*branch_distance);
+            }
+
+            internal_nodes.push(c);
+
 
             for (i, leaf)in current_tree.leaves.iter().enumerate() {
-                let distance = current_tree.leaf_distances[i];
                 let leaf_id = leaf_map[leaf];
                 println!("{} - {}", current_level, leaf);
                 for l in 0..current_level {
-                    distance_matrix[[leaf_id, l]] = accumulated_distances[l];
+                    distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
+                    identity_matrix[[leaf_id, l]] = internal_nodes[l];
                 }
                 distance_matrix[[leaf_id, current_level]] = current_tree.leaf_distances[i];
                 finished_leaves.push(leaf_id);
             }
 
             previous_level = current_level;
-
         }
 
+        println!("{:?}", identity_matrix);
 
         distance_matrix
     }
