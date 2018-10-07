@@ -58,7 +58,6 @@ mod tests {
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
         //println!("{:?}", parsed_tree);
-        println!("{:?}", parsed_tree.to_distance_matrix());
-
+        parsed_tree.to_distance_matrix();
     }
 }

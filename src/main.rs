@@ -1,3 +1,4 @@
+#[macro_use(s)]
 extern crate ndarray;
 
 mod tree;

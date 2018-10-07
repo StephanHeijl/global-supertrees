@@ -2,6 +2,81 @@ use std::f64;
 use std::collections::HashMap;
 use ndarray::prelude::*;
 
+#[derive(Debug)]
+pub struct TreeDistanceMatrix {
+    leaf_map: HashMap<String, usize>,
+    distance_matrix: Array2<f64>
+}
+
+impl TreeDistanceMatrix {
+    #[allow(dead_code)]
+    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f64 {
+        let l1 : usize = self.leaf_map[&leaf_one];
+        let l2 : usize = self.leaf_map[&leaf_two];
+
+        self.distance_matrix[[l1, l2]]
+    }
+
+    fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
+        let mut i = 0;
+        for n in identity_row.iter() {
+            if i == 0 {
+                i += 1;
+                continue;
+            }
+            if *n == 0 {
+                return i;
+            }
+            i += 1;
+        }
+        return 0;
+    }
+
+    fn find_overlap(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
+        let o1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
+        let o2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
+
+        (o1, o2)
+    }
+
+    fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f64>,
+                                     identity_matrix: Array2<usize>,
+                                     n_leaves : usize) -> Array2<f64> {
+
+        let mut distance_matrix : Array2<f64 >= Array2::zeros((n_leaves, n_leaves));
+
+        //println!("{:?}", leaf_distance_matrix);
+        //println!("{:?}", identity_matrix);
+
+        for x in 0..n_leaves {
+            for y in 0..n_leaves {
+                let (xi, yi) = TreeDistanceMatrix::find_overlap(x, y, &identity_matrix);
+                println!("{}, {}", xi, yi);
+                distance_matrix[[x, y]] = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
+            }
+        }
+
+        println!("{:?}", distance_matrix);
+
+        distance_matrix
+    }
+
+    pub fn new(leaf_distance_matrix : Array2<f64>,
+               identity_matrix: Array2<usize>,
+               leaf_map: HashMap<String, usize>) -> TreeDistanceMatrix {
+        let n_leaves = leaf_map.len();
+        let tdm = TreeDistanceMatrix {
+            leaf_map,
+            distance_matrix : TreeDistanceMatrix::generate_full_distance_matrix(
+                leaf_distance_matrix,
+                identity_matrix,
+                n_leaves
+            )
+        };
+        tdm
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Tree {
@@ -190,15 +265,12 @@ impl Tree {
         };
     }
 
-    pub fn to_distance_matrix(&self)-> Array2<f64> {
+    pub fn to_distance_matrix(&self)-> TreeDistanceMatrix {
         let mut n_leaves : usize = 0;
-        let mut n_non_leaf_nodes : usize = 0;
         let mut max_depth = 0;
         let mut leaf_map : HashMap<String, usize> = HashMap::new();
 
         for child in self.traverse_children() {
-            n_non_leaf_nodes += 1;
-
             for leaf in child[0].0.leaves.iter() {
                 leaf_map.insert(leaf.clone(), n_leaves);
                 n_leaves += 1;
@@ -208,14 +280,14 @@ impl Tree {
             }
         }
 
-        let mut distance_matrix : Array2<f64> = Array2::zeros((n_leaves, max_depth + 1));
+        let mut leaf_distance_matrix : Array2<f64> = Array2::zeros((n_leaves, max_depth + 1));
         let mut identity_matrix : Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
 
         let mut finished_leaves : Vec<usize> = Vec::new();
         let mut accumulated_distances : Vec<f64> = Vec::new();
         let mut internal_nodes : Vec<usize> = Vec::new();
         let mut previous_level = 0;
-        let mut current_level = 0;
+        let mut current_level;
 
         for (c, child) in self.traverse_children().iter().enumerate() {
             let current_tree = child[0].0;
@@ -240,20 +312,23 @@ impl Tree {
 
             for (i, leaf)in current_tree.leaves.iter().enumerate() {
                 let leaf_id = leaf_map[leaf];
-                println!("{} - {}", current_level, leaf);
+                // println!("{} - {}", current_level, leaf);
                 for l in 0..current_level {
-                    distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
+                    leaf_distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
                     identity_matrix[[leaf_id, l]] = internal_nodes[l];
                 }
-                distance_matrix[[leaf_id, current_level]] = current_tree.leaf_distances[i];
+                leaf_distance_matrix[[leaf_id, current_level]] = current_tree.leaf_distances[i];
                 finished_leaves.push(leaf_id);
             }
 
             previous_level = current_level;
         }
 
-        println!("{:?}", identity_matrix);
-
+        let distance_matrix = TreeDistanceMatrix::new(
+            leaf_distance_matrix,
+            identity_matrix,
+            leaf_map
+        );
         distance_matrix
     }
 }
