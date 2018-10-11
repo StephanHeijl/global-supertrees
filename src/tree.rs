@@ -1,6 +1,7 @@
 use std::f64;
 use std::collections::HashMap;
 use ndarray::prelude::*;
+use std::process;
 
 #[derive(Debug)]
 pub struct TreeDistanceMatrix {
@@ -32,11 +33,33 @@ impl TreeDistanceMatrix {
         return 0;
     }
 
-    fn find_overlap(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
-        let o1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
-        let o2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
+    fn find_final_parent(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
+        let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
+        let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
 
-        (o1, o2)
+        (p1, p2)
+    }
+
+    fn find_first_common_ancestor(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> usize {
+        //println!("{:?}", identity_matrix);
+
+        let id_row_1 = identity_matrix.slice(s![l1, ..]);
+        let id_row_2 = identity_matrix.slice(s![l2, ..]);
+
+        //println!("{:?}", id_row_1);
+        //println!("{:?}", id_row_2);
+        if id_row_1 == id_row_2 {
+            println!("{:?}", TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix));
+            return TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix).0
+        }
+
+        for i in 0..id_row_1.len() {
+            println!("{} - {}", id_row_1[i], id_row_2[i]);
+            if id_row_1[i] != id_row_2[i] {
+                return id_row_1[i - 1];
+            }
+        }
+        0
     }
 
     fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f64>,
@@ -45,17 +68,33 @@ impl TreeDistanceMatrix {
 
         let mut distance_matrix : Array2<f64 >= Array2::zeros((n_leaves, n_leaves));
 
-        //println!("{:?}", leaf_distance_matrix);
-        //println!("{:?}", identity_matrix);
+        println!("{:?}", leaf_distance_matrix);
+        println!("{:?}", identity_matrix);
 
         for x in 0..n_leaves {
             for y in 0..n_leaves {
-                let (xi, yi) = TreeDistanceMatrix::find_overlap(x, y, &identity_matrix);
-                println!("{}, {}", xi, yi);
-                distance_matrix[[x, y]] = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
+                let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
+                let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
+
+                println!("{},{} -> {},{} ({})", x, y, xi, yi, fca);
+                //println!("{:?}", leaf_distance_matrix);
+
+                // Find the total distance from each leaf to the root.
+                let leaf_root_distance : f64 = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
+
+                // Find the distance between the root and the first common ancestor.
+                let root_fca_distance: f64  = leaf_distance_matrix[[x, fca]];
+                let distance = f64::abs(leaf_root_distance - (root_fca_distance * 2.0));
+                println!("({}, {}) : {} - {} * 2 = {}", x, y, leaf_root_distance, root_fca_distance, distance);
+                distance_matrix[[x, y]] = distance;
+                if (x == 0) & (y == 1) {
+                    //process::exit(0x0100);
+                }
+
             }
         }
 
+        println!("{:?}", distance_matrix.diag());
         println!("{:?}", distance_matrix);
 
         distance_matrix
@@ -84,7 +123,8 @@ pub struct Tree {
     pub branches: Vec<Tree>,
     pub leaf_distances: Vec<f64>,
     pub branch_distances: Vec<f64>,
-    levels_from_root: usize
+    levels_from_root: usize,
+    branch_number: usize
 
 }
 
@@ -110,7 +150,10 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    pub fn add_branch(&mut self, branch: Tree, distance: f64) {
+    pub fn add_branch(&mut self, mut branch: Tree, distance: f64) {
+        branch.levels_from_root = self.levels_from_root + 1;
+        branch.branch_number = self.branches.len() + 1;
+
         self.branches.push(branch);
         self.branch_distances.push(distance);
     }
@@ -141,7 +184,7 @@ impl Tree {
         children
     }
 
-    fn parse_tree_from_string(tree_string : String, depth : usize) -> (Tree, usize) {
+    fn parse_tree_from_string(tree_string : String, depth : usize, branch_number : usize) -> (Tree, usize) {
         /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
         let mut branches = Vec::<Tree>::new();
@@ -161,7 +204,11 @@ impl Tree {
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c ).collect();
-                let (branch, new_skip) = Tree::parse_tree_from_string(remainder, depth + 1);
+                let (branch, new_skip) = Tree::parse_tree_from_string(
+                    remainder,
+                    depth + 1,
+                    branches.len()
+                );
                 c += new_skip;
                 branches.push(branch);
                 branch_distances.push(f64::NAN);
@@ -222,14 +269,15 @@ impl Tree {
             branches: branches,
             leaf_distances: leaf_distances,
             branch_distances: branch_distances,
-            levels_from_root: depth
+            levels_from_root: depth,
+            branch_number: branch_number
         };
 
         return (tree, c);
     }
 
     pub fn parse(tree_string : String) -> Tree {
-        return Tree::parse_tree_from_string(tree_string, 0).0;
+        return Tree::parse_tree_from_string(tree_string, 0, 0).0;
     }
 
     pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f64>, branch_distances : Vec<f64>) -> Tree {
@@ -261,7 +309,8 @@ impl Tree {
             branches,
             leaf_distances,
             branch_distances,
-            levels_from_root : 0
+            levels_from_root: 0,
+            branch_number: 0
         };
     }
 
@@ -294,7 +343,7 @@ impl Tree {
             let branch_distance = child[0].1;
 
             current_level = current_tree.levels_from_root;
-            if previous_level < current_level {
+            if (previous_level < current_level) {
                 for _l in current_level..previous_level {
                     accumulated_distances.pop();
                     internal_nodes.pop();
@@ -308,7 +357,7 @@ impl Tree {
             }
 
             internal_nodes.push(c);
-
+            println!("{:?} : {} - {}", accumulated_distances, previous_level, current_level);
 
             for (i, leaf)in current_tree.leaves.iter().enumerate() {
                 let leaf_id = leaf_map[leaf];
@@ -323,6 +372,10 @@ impl Tree {
 
             previous_level = current_level;
         }
+
+        println!("{:?}", identity_matrix);
+
+        //process::exit(1);
 
         let distance_matrix = TreeDistanceMatrix::new(
             leaf_distance_matrix,

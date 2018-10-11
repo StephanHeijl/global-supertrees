@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_to_distance_matrix() {
-        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let filename = String::from("/home/stephan/newick_trees/5.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
         //println!("{:?}", parsed_tree);
