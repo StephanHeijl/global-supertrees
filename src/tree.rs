@@ -41,6 +41,7 @@ impl TreeDistanceMatrix {
     }
 
     fn find_first_common_ancestor(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> usize {
+        // TODO: This is broken, look at Gamma-Delta distances in tree 5.
         //println!("{:?}", identity_matrix);
 
         let id_row_1 = identity_matrix.slice(s![l1, ..]);
@@ -49,12 +50,12 @@ impl TreeDistanceMatrix {
         //println!("{:?}", id_row_1);
         //println!("{:?}", id_row_2);
         if id_row_1 == id_row_2 {
-            println!("{:?}", TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix));
+            //println!("{:?}", TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix));
             return TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix).0
         }
 
         for i in 0..id_row_1.len() {
-            println!("{} - {}", id_row_1[i], id_row_2[i]);
+            //println!("{} - {}", id_row_1[i], id_row_2[i]);
             if id_row_1[i] != id_row_2[i] {
                 return id_row_1[i - 1];
             }
@@ -76,7 +77,7 @@ impl TreeDistanceMatrix {
                 let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
                 let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
 
-                println!("{},{} -> {},{} ({})", x, y, xi, yi, fca);
+                println!("{},{} -> {},{} ({}) : {} <-> {}", x, y, xi, yi, fca, leaf_distance_matrix[[x, xi]], leaf_distance_matrix[[y, yi]]);
                 //println!("{:?}", leaf_distance_matrix);
 
                 // Find the total distance from each leaf to the root.
@@ -335,19 +336,32 @@ impl Tree {
         let mut finished_leaves : Vec<usize> = Vec::new();
         let mut accumulated_distances : Vec<f64> = Vec::new();
         let mut internal_nodes : Vec<usize> = Vec::new();
+
         let mut previous_level = 0;
+        let mut previous_branch_number = 0;
+
         let mut current_level;
+        let mut current_branch_number;
 
         for (c, child) in self.traverse_children().iter().enumerate() {
             let current_tree = child[0].0;
             let branch_distance = child[0].1;
 
             current_level = current_tree.levels_from_root;
-            if (previous_level < current_level) {
+            current_branch_number = current_tree.branch_number;
+
+            if previous_level < current_level {
+                //print!("Popping down - {:?} ~> ", accumulated_distances);
                 for _l in current_level..previous_level {
                     accumulated_distances.pop();
                     internal_nodes.pop();
                 }
+                //print!("{:?}\n", accumulated_distances);
+            } else if previous_branch_number < current_branch_number {
+                //print!("Popping down - {:?} ~> ", accumulated_distances);
+                accumulated_distances.pop();
+                internal_nodes.pop();
+                //print!("{:?}\n", accumulated_distances);
             }
 
             if (*branch_distance).is_nan() {
@@ -357,23 +371,30 @@ impl Tree {
             }
 
             internal_nodes.push(c);
-            println!("{:?} : {} - {}", accumulated_distances, previous_level, current_level);
+            //println!("{:?} < {}", current_tree, branch_distance);
+            //println!("{:?} : {} ~> {} : {} ~> {}", accumulated_distances, previous_level, current_level, previous_branch_number, current_branch_number);
 
             for (i, leaf)in current_tree.leaves.iter().enumerate() {
                 let leaf_id = leaf_map[leaf];
-                // println!("{} - {}", current_level, leaf);
+                //println!("{} - {}", current_level, leaf);
                 for l in 0..current_level {
                     leaf_distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
                     identity_matrix[[leaf_id, l]] = internal_nodes[l];
                 }
-                leaf_distance_matrix[[leaf_id, current_level]] = current_tree.leaf_distances[i];
+                // Add the final accumulated leaf distance
+                leaf_distance_matrix[[leaf_id, current_level]] =
+                    leaf_distance_matrix[[leaf_id, current_level - 1]] + current_tree.leaf_distances[i];
                 finished_leaves.push(leaf_id);
             }
 
             previous_level = current_level;
+            previous_branch_number = current_branch_number;
         }
 
+
+
         println!("{:?}", identity_matrix);
+        println!("{:?}", leaf_distance_matrix);
 
         //process::exit(1);
 
