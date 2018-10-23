@@ -47,24 +47,19 @@ impl TreeDistanceMatrix {
         /* Find the first common ancestor of two leaves.  If they do not share any explicit ancestors,
          the first common ancestor becomes the root of the tree (0). If the leaves are on the same (sub)tree,
          their shared subtree is returned. The ancestor trees are returned as a number representing the subtree id. */
-
-        // TODO: This is broken, look at Gamma-Delta distances in tree 5.
         //println!("{:?}", identity_matrix);
 
         let id_row_1 = identity_matrix.slice(s![l1, ..]);
         let id_row_2 = identity_matrix.slice(s![l2, ..]);
 
-        //println!("{:?}", id_row_1);
-        //println!("{:?}", id_row_2);
         if id_row_1 == id_row_2 {
             //println!("{:?}", TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix));
-            return TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix).0
+            return TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix).0 - 1
         }
 
-        for i in 0..id_row_1.len() {
-            //println!("{} - {}", id_row_1[i], id_row_2[i]);
+        for i in 1..id_row_1.len() {
             if id_row_1[i] != id_row_2[i] {
-                return id_row_1[i - 1];
+                return i - 1;
             }
         }
         return 0;
@@ -77,18 +72,28 @@ impl TreeDistanceMatrix {
 
         let mut distance_matrix : Array2<f64 >= Array2::zeros((n_leaves, n_leaves));
 
-        println!("{:?}", leaf_distance_matrix);
-        println!("{:?}", identity_matrix);
+        //println!("{:?}", leaf_distance_matrix);
+        //println!("{:?}", identity_matrix);
 
         for x in 0..n_leaves {
             /* Iterate over each leaf for the X axis. */
             for y in 0..n_leaves {
                 /* Iterate over each leaf for the Y axis */
+                if x == y {
+                    distance_matrix[[x, y]] = 0.0;
+                    continue;
+                }
+
                 let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
                 let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
 
-                println!("{},{} -> {},{} ({}) : {} <-> {}", x, y, xi, yi, fca, leaf_distance_matrix[[x, xi]], leaf_distance_matrix[[y, yi]]);
-                //println!("{:?}", leaf_distance_matrix);
+                /*println!("{},{} -> {},{} ({}) : {} <-> {}", x, y, xi, yi, fca, leaf_distance_matrix[[x, xi]], leaf_distance_matrix[[y, yi]]);
+                println!("{:?}", identity_matrix.slice(s![x, ..]));
+                println!("{:?}\n", identity_matrix.slice(s![y, ..]));
+
+                println!("{:?}", leaf_distance_matrix.slice(s![x, ..]));
+                println!("{:?}\n", leaf_distance_matrix.slice(s![y, ..]));
+                println!("{:?}", leaf_distance_matrix);*/
 
                 // Find the total distance from each leaf to the root.
                 let leaf_root_distance : f64 = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
@@ -96,16 +101,12 @@ impl TreeDistanceMatrix {
                 // Find the distance between the root and the first common ancestor.
                 let root_fca_distance: f64  = leaf_distance_matrix[[x, fca]];
                 let distance = f64::abs(leaf_root_distance - (root_fca_distance * 2.0));
-                println!("({}, {}) : {} - {} * 2 = {}", x, y, leaf_root_distance, root_fca_distance, distance);
+                //println!("({}, {}) : {} - {} * 2 = {}", x, y, leaf_root_distance, root_fca_distance, distance);
                 distance_matrix[[x, y]] = distance;
-                if (x == 0) & (y == 1) {
-                    //process::exit(0x0100);
-                }
-
             }
         }
 
-        println!("{:?}", distance_matrix.diag());
+        //println!("{:?}", distance_matrix.diag());
         println!("{:?}", distance_matrix);
 
         distance_matrix
