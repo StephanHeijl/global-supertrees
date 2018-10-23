@@ -18,7 +18,9 @@ impl TreeDistanceMatrix {
         self.distance_matrix[[l1, l2]]
     }
 
-    fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
+    pub fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
+        /* Returns the index of the first zero in a 1D ArrayView from position 1.
+         Returns 0 if no zero has been found. */
         let mut i = 0;
         for n in identity_row.iter() {
             if i == 0 {
@@ -34,13 +36,18 @@ impl TreeDistanceMatrix {
     }
 
     fn find_final_parent(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
+        /* Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2). */
         let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
         let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
 
         (p1, p2)
     }
 
-    fn find_first_common_ancestor(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> usize {
+    pub fn find_first_common_ancestor(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> usize {
+        /* Find the first common ancestor of two leaves.  If they do not share any explicit ancestors,
+         the first common ancestor becomes the root of the tree (0). If the leaves are on the same (sub)tree,
+         their shared subtree is returned. The ancestor trees are returned as a number representing the subtree id. */
+
         // TODO: This is broken, look at Gamma-Delta distances in tree 5.
         //println!("{:?}", identity_matrix);
 
@@ -60,12 +67,13 @@ impl TreeDistanceMatrix {
                 return id_row_1[i - 1];
             }
         }
-        0
+        return 0;
     }
 
     fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f64>,
                                      identity_matrix: Array2<usize>,
                                      n_leaves : usize) -> Array2<f64> {
+        /* Generates a full distance matrix */
 
         let mut distance_matrix : Array2<f64 >= Array2::zeros((n_leaves, n_leaves));
 
@@ -73,7 +81,9 @@ impl TreeDistanceMatrix {
         println!("{:?}", identity_matrix);
 
         for x in 0..n_leaves {
+            /* Iterate over each leaf for the X axis. */
             for y in 0..n_leaves {
+                /* Iterate over each leaf for the Y axis */
                 let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
                 let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
 
