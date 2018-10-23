@@ -95,11 +95,18 @@ mod tests {
     }
 
     #[test]
-    fn test_to_distance_matrix() {
+    fn test_to_distance_matrix_simple() {
         let filename = String::from("/home/stephan/newick_trees/5.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
-        //println!("{:?}", parsed_tree);
+        parsed_tree.to_distance_matrix();
+    }
+
+    #[test]
+    fn test_to_distance_matrix_hard() {
+        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let tree_file = utils::load_tree_file(filename);
+        let parsed_tree = tree::Tree::parse(tree_file);
         parsed_tree.to_distance_matrix();
     }
 }
