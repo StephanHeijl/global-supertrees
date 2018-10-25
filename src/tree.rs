@@ -6,6 +6,7 @@ use std::process;
 #[derive(Debug)]
 pub struct TreeDistanceMatrix {
     leaf_map: HashMap<String, usize>,
+    leaf_map_inv: HashMap<usize, String>,
     distance_matrix: Array2<f64>
 }
 
@@ -16,6 +17,55 @@ impl TreeDistanceMatrix {
         let l2 : usize = self.leaf_map[&leaf_two];
 
         self.distance_matrix[[l1, l2]]
+    }
+
+    pub fn to_csv(&self) -> String {
+        let mut csv = String::from("");
+        let delim = ',';
+
+        //println!("{} - {:?}", self.leaf_map_inv.len(), self.distance_matrix.shape());
+
+        let mut max_key: usize = 0;
+        for key in self.leaf_map_inv.keys() {
+            if key > &max_key {
+                max_key = *key;
+            }
+        }
+
+        let mut leaves : Vec<String> = Vec::new();
+
+        for l in 0..max_key + 1 {
+            match self.leaf_map_inv.get(&l) {
+                Some(name) => {
+                    csv.push_str(name);
+                    leaves.push(name.to_string());
+                    if l < max_key {
+                        csv.push(delim);
+                    }
+                },
+                None => {}
+            }
+        }
+        csv.push('\n');
+
+        for (r, row) in self.distance_matrix.outer_iter().enumerate() {
+            csv.push_str(&leaves[r]);
+            csv.push(delim);
+            let mut v = 0;
+            for val in row {
+                csv.push_str(&val.to_string());
+                if v < leaves.len() {
+                    csv.push(delim);
+                }
+                v += 1;
+            }
+            csv.push('\n');
+        }
+        return csv;
+    }
+
+    pub fn shape(&self) -> &[usize]{
+        return self.distance_matrix.shape();
     }
 
     pub fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
@@ -99,8 +149,15 @@ impl TreeDistanceMatrix {
                identity_matrix: Array2<usize>,
                leaf_map: HashMap<String, usize>) -> TreeDistanceMatrix {
         let n_leaves = leaf_map.len();
+
+        let mut leaf_map_inv : HashMap<usize, String> = HashMap::new();
+        for (key, value) in leaf_map.iter() {
+            leaf_map_inv.insert(*value, key.to_string());
+        }
+
         let tdm = TreeDistanceMatrix {
             leaf_map,
+            leaf_map_inv,
             distance_matrix : TreeDistanceMatrix::generate_full_distance_matrix(
                 leaf_distance_matrix,
                 identity_matrix,
@@ -188,17 +245,23 @@ impl Tree {
 
         let mut current_leaf = String::new();
         let mut current_distance = String::new();
-        let mut read_mode = "LEAF";
+        let mut read_mode = "LEAF";  // The read mode can be LEAF, DIST, BDONE
 
         let mut c = 0;
         let mut chr : char;
 
         while c < tree_string.len() {
+//            print!("{}", c);
+//            for _c in c.to_string().chars() {
+//                print!("{}", (8u8 as char));
+//            }
+//            print!("{}", (8u8 as char));
+
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
 
             if chr == '(' {
-                let remainder = tree_string.chars().skip(c ).collect();
+                let remainder = tree_string.chars().skip(c).collect();
                 let (branch, new_skip) = Tree::parse_tree_from_string(
                     remainder,
                     depth + 1,
@@ -207,7 +270,7 @@ impl Tree {
                 c += new_skip;
                 branches.push(branch);
                 branch_distances.push(f64::NAN);
-                read_mode = "LEAF";
+                read_mode = "BDON";
                 continue;
 
             } else if chr == ')' {
@@ -217,7 +280,7 @@ impl Tree {
                         leaves.push(current_leaf.clone().trim().to_string());
                         leaf_distances.push(current_distance.parse().unwrap());
                     } else {
-                        // We found the distance of a branch, eplace NAN with true distance
+                        // We found the distance of a branch, replace NAN with true distance
                         let bdsize = branch_distances.len();
                         branch_distances[bdsize - 1] = current_distance.parse::<f64>().unwrap();
                     }
@@ -244,6 +307,8 @@ impl Tree {
                 } else if read_mode == "LEAF" {
                     // We found a leaf without a distance.
                     leaves.push(current_leaf.clone());
+                } else if read_mode == "BDON" {
+                    read_mode = "LEAF";
                 }
 
                 read_mode = "LEAF";
@@ -255,6 +320,8 @@ impl Tree {
                     current_leaf.push(chr);
                 } else if read_mode == "DIST" {
                     current_distance.push(chr);
+                } else if read_mode == "BDON" {
+                    continue;  // Ignore edge values.
                 }
             }
         }
@@ -378,8 +445,8 @@ impl Tree {
             previous_branch_number = current_branch_number;
         }
 
-        println!("{:?}", identity_matrix);
-        println!("{:?}", leaf_distance_matrix);
+        // println!("{:?}", identity_matrix);
+        // println!("{:?}", leaf_distance_matrix);
 
         let distance_matrix = TreeDistanceMatrix::new(
             leaf_distance_matrix,
