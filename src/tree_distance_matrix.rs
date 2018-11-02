@@ -4,9 +4,9 @@ use ndarray::prelude::*;
 
 #[derive(Debug)]
 pub struct TreeDistanceMatrix {
-    leaf_map: HashMap<String, usize>,
-    leaf_map_inv: HashMap<usize, String>,
-    distance_matrix: Array2<f64>
+    pub leaf_map: HashMap<String, usize>,
+    pub leaf_map_inv: HashMap<usize, String>,
+    pub distance_matrix: Array2<f64>
 }
 
 impl TreeDistanceMatrix {

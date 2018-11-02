@@ -72,6 +72,7 @@ impl Tree {
         children
     }
 
+    #[allow(dead_code)]
     fn parse_tree_from_string(tree_string : String, depth : usize, branch_number : usize) -> (Tree, usize) {
         /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
@@ -174,10 +175,12 @@ impl Tree {
         return (tree, c);
     }
 
+    #[allow(dead_code)]
     pub fn parse(tree_string : String) -> Tree {
         return Tree::parse_tree_from_string(tree_string, 0, 0).0;
     }
 
+    #[allow(dead_code)]
     pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f64>, branch_distances : Vec<f64>) -> Tree {
 
         if (leaf_distances.len() > 0) & (leaf_distances.len() != leaves.len()) {
@@ -212,6 +215,7 @@ impl Tree {
         };
     }
 
+    #[allow(dead_code)]
     pub fn to_distance_matrix(&self)-> TreeDistanceMatrix {
         let mut n_leaves : usize = 0;
         let mut max_depth = 0;

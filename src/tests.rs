@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use::tree;
+    use::tree_distance_matrix;
     use::utils;
     use ndarray::prelude::*;
 
@@ -67,10 +68,10 @@ mod tests {
         let arr_four = Array::from_vec(vec!(
             1, 2, 3, 4, 5, 6
         ));
-        assert_eq!(tree::TreeDistanceMatrix::find_first_zero(arr_one.view()), 0);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_zero(arr_two.view()), 3);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_zero(arr_three.view()), 5);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_zero(arr_four.view()), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_zero(arr_one.view()), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_zero(arr_two.view()), 3);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_zero(arr_three.view()), 5);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_zero(arr_four.view()), 0);
     }
 
     #[test]
@@ -84,14 +85,14 @@ mod tests {
                 0, 7, 8, 9, 10
             ]
         ).unwrap();
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(0, 1, &identity_matrix), 2);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(1, 0, &identity_matrix), 2);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(1, 2, &identity_matrix), 0);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(2, 1, &identity_matrix), 0);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(2, 3, &identity_matrix), 9);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(3, 2, &identity_matrix), 9);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(0, 2, &identity_matrix), 0);
-        assert_eq!(tree::TreeDistanceMatrix::find_first_common_ancestor(2, 0, &identity_matrix), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(0, 1, &identity_matrix), 2);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(1, 0, &identity_matrix), 2);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(1, 2, &identity_matrix), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(2, 1, &identity_matrix), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(2, 3, &identity_matrix), 3);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(3, 2, &identity_matrix), 3);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(0, 2, &identity_matrix), 0);
+        assert_eq!(tree_distance_matrix::TreeDistanceMatrix::find_first_common_ancestor(2, 0, &identity_matrix), 0);
     }
 
     #[test]
