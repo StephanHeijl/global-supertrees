@@ -7,6 +7,7 @@ use std::env;
 mod tree;
 mod utils;
 mod tests;
+mod tree_distance_matrix;
 mod test_tree_parsing;
 
 
