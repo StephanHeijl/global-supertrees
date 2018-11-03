@@ -1,115 +1,8 @@
 use std::f64;
 use std::collections::HashMap;
 use ndarray::prelude::*;
+use tree_distance_matrix::*;
 use std::process;
-
-#[derive(Debug)]
-pub struct TreeDistanceMatrix {
-    leaf_map: HashMap<String, usize>,
-    distance_matrix: Array2<f64>
-}
-
-impl TreeDistanceMatrix {
-    #[allow(dead_code)]
-    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f64 {
-        let l1 : usize = self.leaf_map[&leaf_one];
-        let l2 : usize = self.leaf_map[&leaf_two];
-
-        self.distance_matrix[[l1, l2]]
-    }
-
-    pub fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
-        /* Returns the index of the first zero in a 1D ArrayView from position 1.
-         Returns 0 if no zero has been found. */
-        let mut i = 0;
-        for n in identity_row.iter() {
-            if i == 0 {
-                i += 1;
-                continue;
-            }
-            if *n == 0 {
-                return i;
-            }
-            i += 1;
-        }
-        return 0;
-    }
-
-    fn find_final_parent(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
-        /* Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2). */
-        let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
-        let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
-
-        (p1, p2)
-    }
-
-    pub fn find_first_common_ancestor(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> usize {
-        /* Find the first common ancestor of two leaves.  If they do not share any explicit ancestors,
-         the first common ancestor becomes the root of the tree (0). If the leaves are on the same (sub)tree,
-         their shared subtree is returned. The ancestor trees are returned as a number representing the subtree id. */
-
-        let id_row_1 = identity_matrix.slice(s![l1, ..]);
-        let id_row_2 = identity_matrix.slice(s![l2, ..]);
-
-        if id_row_1 == id_row_2 {
-            return TreeDistanceMatrix::find_final_parent(l1, l2, identity_matrix).0 - 1
-        }
-
-        for i in 1..id_row_1.len() {
-            if id_row_1[i] != id_row_2[i] {
-                return i - 1;
-            }
-        }
-        return 0;
-    }
-
-    fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f64>,
-                                     identity_matrix: Array2<usize>,
-                                     n_leaves : usize) -> Array2<f64> {
-        /* Generates a full distance matrix */
-
-        let mut distance_matrix : Array2<f64 >= Array2::zeros((n_leaves, n_leaves));
-
-        for x in 0..n_leaves {
-            /* Iterate over each leaf for the X axis. */
-            for y in 0..n_leaves {
-                /* Iterate over each leaf for the Y axis */
-                if x == y {
-                    distance_matrix[[x, y]] = 0.0;
-                    continue;
-                }
-
-                let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
-                let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
-
-                // Find the total distance from each leaf to the root.
-                let leaf_root_distance : f64 = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
-
-                // Find the distance between the root and the first common ancestor.
-                let root_fca_distance: f64  = leaf_distance_matrix[[x, fca]];
-                let distance = f64::abs(leaf_root_distance - (root_fca_distance * 2.0));
-                distance_matrix[[x, y]] = distance;
-            }
-        }
-
-        distance_matrix
-    }
-
-    pub fn new(leaf_distance_matrix : Array2<f64>,
-               identity_matrix: Array2<usize>,
-               leaf_map: HashMap<String, usize>) -> TreeDistanceMatrix {
-        let n_leaves = leaf_map.len();
-        let tdm = TreeDistanceMatrix {
-            leaf_map,
-            distance_matrix : TreeDistanceMatrix::generate_full_distance_matrix(
-                leaf_distance_matrix,
-                identity_matrix,
-                n_leaves
-            )
-        };
-        tdm
-    }
-}
 
 
 #[derive(Debug)]
@@ -120,8 +13,8 @@ pub struct Tree {
     pub branch_distances: Vec<f64>,
     levels_from_root: usize,
     branch_number: usize
-
 }
+
 
 impl Tree {
     #[allow(dead_code)]
@@ -179,6 +72,7 @@ impl Tree {
         children
     }
 
+    #[allow(dead_code)]
     fn parse_tree_from_string(tree_string : String, depth : usize, branch_number : usize) -> (Tree, usize) {
         /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
@@ -188,17 +82,23 @@ impl Tree {
 
         let mut current_leaf = String::new();
         let mut current_distance = String::new();
-        let mut read_mode = "LEAF";
+        let mut read_mode = "LEAF";  // The read mode can be LEAF, DIST, BDONE
 
         let mut c = 0;
         let mut chr : char;
 
         while c < tree_string.len() {
+//            print!("{}", c);
+//            for _c in c.to_string().chars() {
+//                print!("{}", (8u8 as char));
+//            }
+//            print!("{}", (8u8 as char));
+
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
 
             if chr == '(' {
-                let remainder = tree_string.chars().skip(c ).collect();
+                let remainder = tree_string.chars().skip(c).collect();
                 let (branch, new_skip) = Tree::parse_tree_from_string(
                     remainder,
                     depth + 1,
@@ -207,7 +107,7 @@ impl Tree {
                 c += new_skip;
                 branches.push(branch);
                 branch_distances.push(f64::NAN);
-                read_mode = "LEAF";
+                read_mode = "BDON";
                 continue;
 
             } else if chr == ')' {
@@ -217,7 +117,7 @@ impl Tree {
                         leaves.push(current_leaf.clone().trim().to_string());
                         leaf_distances.push(current_distance.parse().unwrap());
                     } else {
-                        // We found the distance of a branch, eplace NAN with true distance
+                        // We found the distance of a branch, replace NAN with true distance
                         let bdsize = branch_distances.len();
                         branch_distances[bdsize - 1] = current_distance.parse::<f64>().unwrap();
                     }
@@ -244,6 +144,8 @@ impl Tree {
                 } else if read_mode == "LEAF" {
                     // We found a leaf without a distance.
                     leaves.push(current_leaf.clone());
+                } else if read_mode == "BDON" {
+                    read_mode = "LEAF";
                 }
 
                 read_mode = "LEAF";
@@ -255,6 +157,8 @@ impl Tree {
                     current_leaf.push(chr);
                 } else if read_mode == "DIST" {
                     current_distance.push(chr);
+                } else if read_mode == "BDON" {
+                    continue;  // Ignore edge values.
                 }
             }
         }
@@ -271,10 +175,12 @@ impl Tree {
         return (tree, c);
     }
 
+    #[allow(dead_code)]
     pub fn parse(tree_string : String) -> Tree {
         return Tree::parse_tree_from_string(tree_string, 0, 0).0;
     }
 
+    #[allow(dead_code)]
     pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f64>, branch_distances : Vec<f64>) -> Tree {
 
         if (leaf_distances.len() > 0) & (leaf_distances.len() != leaves.len()) {
@@ -309,6 +215,7 @@ impl Tree {
         };
     }
 
+    #[allow(dead_code)]
     pub fn to_distance_matrix(&self)-> TreeDistanceMatrix {
         let mut n_leaves : usize = 0;
         let mut max_depth = 0;
@@ -378,8 +285,8 @@ impl Tree {
             previous_branch_number = current_branch_number;
         }
 
-        println!("{:?}", identity_matrix);
-        println!("{:?}", leaf_distance_matrix);
+        // println!("{:?}", identity_matrix);
+        // println!("{:?}", leaf_distance_matrix);
 
         let distance_matrix = TreeDistanceMatrix::new(
             leaf_distance_matrix,
