@@ -1,5 +1,6 @@
 #[macro_use(s)]
 extern crate ndarray;
+extern crate rayon;
 
 mod tree;
 mod utils;
@@ -13,5 +14,6 @@ fn main() {
     ));
     let parsed_tree = tree::Tree::parse(tree_file);
     let children = parsed_tree.traverse_children();
-    println!("{:?}", children)
+    println!("{:?}", children);
+    println!("{:?}", parsed_tree.to_distance_matrix());
 }
