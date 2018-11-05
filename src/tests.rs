@@ -110,4 +110,13 @@ mod tests {
         let parsed_tree = tree::Tree::parse(tree_file);
         parsed_tree.to_distance_matrix();
     }
+
+    #[test]
+    fn test_neighbour_joining() {
+        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let tree_file = utils::load_tree_file(filename);
+        let parsed_tree = tree::Tree::parse(tree_file);
+        let distance_matrix = parsed_tree.to_distance_matrix();
+        distance_matrix.neighbour_joining();
+    }
 }

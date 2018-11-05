@@ -13,7 +13,8 @@ mod test_tree_parsing;
 
 
 fn main() {
-    let mut fname = String::from("/home/sheijl/alignment-analysis/trees/data/3DM/sixhairpin_gent_2017/webcache/1/1/alignment.ftree");
+    //let mut fname = String::from("/home/sheijl/alignment-analysis/trees/data/3DM/sixhairpin_gent_2017/webcache/1/1/alignment.ftree");
+    let mut fname = String::from("/home/stephan/newick_trees/1.tree");
     for (a, arg) in env::args().enumerate() {
         if a == 1 {
             fname = arg;

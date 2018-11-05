@@ -1,6 +1,7 @@
 use std::f64;
 use std::collections::HashMap;
 use ndarray::prelude::*;
+use tree::*;
 
 #[derive(Debug)]
 pub struct TreeDistanceMatrix {
@@ -10,6 +11,140 @@ pub struct TreeDistanceMatrix {
 }
 
 impl TreeDistanceMatrix {
+    pub fn calculate_q_matrix(dm : &Array2<f64>) -> Array2<f64> {
+        let mut q_matrix : Array2<f64 >= Array2::zeros(dm.raw_dim());
+        let n = dm.shape()[0];  // Number of taxa
+
+        for i in 0..n {
+            for j in 0..n {
+                q_matrix[[i, j]] =  ((n as f64 - 2.0) * dm[[i, j]]) -
+                                     dm.row(i).scalar_sum() -
+                                     dm.column(j).scalar_sum();
+            }
+        }
+        q_matrix
+    }
+
+    pub fn calculate_pair_distance_matrix(i : usize, j : usize, dm : &Array2<f64>) -> Array2<f64> {
+        // Create new distance matrix with the new pair as a single node.
+        let mut new_distances : Array2<f64 >= Array2::zeros(
+            (dm.shape()[0] - 1, dm.shape()[1] - 1)
+        );
+        // New indexes
+        let mut x_n = 0;
+        let mut y_n;
+        let final_idx = new_distances.shape()[0] - 1;
+
+        for x in 0..dm.shape()[0] {
+            y_n = 0;
+            for y in 0..dm.shape()[1] {
+                //println!("{},{}, {:?}, {:?}, {}, {}, {}, {}", x, y, new_distances.shape(), dm.shape(), x_n, y_n, i, j);
+                if (x == i) | (x == j) {
+                    new_distances[[final_idx, y_n]] = 0.5 * (
+                        dm[[i, y]] + dm[[j, y]] - dm[[i, j]]
+                    );
+                    if (y != i) & (y != j) {
+                        y_n += 1;
+                    }
+                } else if (y == i) | (y == j) {
+                    new_distances[[x_n, final_idx]] = 0.5 * (
+                        dm[[i, x]] + dm[[j, x]] - dm[[i, j]]
+                    );
+                } else {
+                    new_distances[[x_n, y_n]] = dm[[x, y]];
+                    y_n += 1;
+                }
+            }
+            if (x != i) & (x != j) {
+                x_n += 1;
+            }
+        }
+
+        return new_distances;
+    }
+
+    pub fn calculate_new_leaf_distances(f : usize, g : usize, dm : &Array2<f64>) -> (f64, f64) {
+        /* Finds the leaf distances for the pair inside the Tree node. */
+        // f and g are the paired taxa and u is the new created node.
+        let n = dm.shape()[0] as f64;
+
+        let d_fu = 0.5 * dm[[f, g]] + (1.0 / (2.0 * (n - 2.0))) * (dm.row(f).scalar_sum() - dm.row(g).scalar_sum());
+        let d_gu = dm[[f, g]] - d_fu;
+
+        return (d_fu, d_gu);
+    }
+
+    pub fn find_min_matrix_ne(matrix : Array2<f64>) -> [usize; 2] {
+        /* Returns the lowest index in the matrix where i != j */
+        let mut lowest : f64 = f64::MAX;
+        let mut idx = [0, 0];
+        let mut v : f64;
+        for i in 0..matrix.shape()[0] {
+            for j in 0..matrix.shape()[1] {
+                if i != j {
+                    v = matrix[[i, j]];
+                    if v < lowest {
+                        lowest = v;
+                        idx = [i, j];
+                    }
+                }
+            }
+        }
+        return idx;
+    }
+
+    pub fn neighbour_joining(&self) -> Tree {
+        let mut distance_matrix = self.distance_matrix.clone();
+
+        let mut trees : Vec<Tree> = Vec::new();
+        let mut iteration = 0;
+
+        while distance_matrix.shape()[0] > 2 {
+            let q_matrix = TreeDistanceMatrix::calculate_q_matrix(
+                &distance_matrix
+            );
+            let lowest_pair = TreeDistanceMatrix::find_min_matrix_ne(q_matrix);
+
+            let pair_distance_matrix = TreeDistanceMatrix::calculate_pair_distance_matrix(
+                lowest_pair[0], lowest_pair[1], &distance_matrix
+            );
+            let pair_leaf_distances = TreeDistanceMatrix::calculate_new_leaf_distances(
+                lowest_pair[0], lowest_pair[1], &distance_matrix
+            );
+
+            let tree_idx : Vec<usize> = ((pair_distance_matrix.shape()[0] - iteration)..(pair_distance_matrix.shape()[0] + 1)).collect();
+            println!("{:?}", tree_idx);
+
+            if tree_idx.contains(&lowest_pair[0]) {
+
+            }
+
+            let mut leaves = Vec::new();
+            leaves.push(self.leaf_map_inv[&lowest_pair[0]].clone());
+            leaves.push(self.leaf_map_inv[&lowest_pair[1]].clone());
+
+            let inner_tree = Tree::new(
+                leaves,
+                vec!(),
+                vec!(pair_leaf_distances.0, pair_leaf_distances.1),
+                vec!()
+            );
+            distance_matrix = pair_distance_matrix;
+
+
+
+            trees.push(inner_tree);
+
+            let new_pair_dest =
+
+            println!("{:?} -> {:?} ({})", distance_matrix.shape(), lowest_pair, iteration);
+            iteration += 1;
+        }
+
+        return Tree::new(vec!(), vec!(), vec!(), vec!());
+    }
+
+
     #[allow(dead_code)]
     pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f64 {
         let l1 : usize = self.leaf_map[&leaf_one];
@@ -18,6 +153,7 @@ impl TreeDistanceMatrix {
         self.distance_matrix[[l1, l2]]
     }
 
+    #[allow(dead_code)]
     pub fn to_csv(&self) -> String {
         let mut csv = String::from("");
         let delim = ',';
@@ -63,10 +199,12 @@ impl TreeDistanceMatrix {
         return csv;
     }
 
+    #[allow(dead_code)]
     pub fn shape(&self) -> &[usize]{
         return self.distance_matrix.shape();
     }
 
+    #[allow(dead_code)]
     pub fn find_first_zero(identity_row : ArrayView1<usize>) -> usize {
         /* Returns the index of the first zero in a 1D ArrayView from position 1.
          Returns 0 if no zero has been found. */
@@ -83,6 +221,7 @@ impl TreeDistanceMatrix {
         }
         return 0;
     }
+
 
     fn find_final_parent(l1 : usize, l2 : usize, identity_matrix : &Array2<usize>) -> (usize, usize) {
         /* Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2). */
