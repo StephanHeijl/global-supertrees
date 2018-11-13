@@ -1,16 +1,15 @@
-use std::f64;
+use std::f32;
 use std::collections::HashMap;
 use ndarray::prelude::*;
 use tree_distance_matrix::*;
 use std::process;
 
-
 #[derive(Debug)]
 pub struct Tree {
     pub leaves: Vec<String>,
     pub branches: Vec<Tree>,
-    pub leaf_distances: Vec<f64>,
-    pub branch_distances: Vec<f64>,
+    pub leaf_distances: Vec<f32>,
+    pub branch_distances: Vec<f32>,
     levels_from_root: usize,
     branch_number: usize
 }
@@ -18,7 +17,7 @@ pub struct Tree {
 
 impl Tree {
     #[allow(dead_code)]
-    pub fn get_leaves(&self) -> HashMap<&String, &f64> {
+    pub fn get_leaves(&self) -> HashMap<&String, &f32> {
         let mut leaves_map = HashMap::new();
         for l in 0..self.leaves.len() {
             leaves_map.insert(
@@ -32,13 +31,13 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    pub fn add_leaf(&mut self, name: String, distance: f64) {
+    pub fn add_leaf(&mut self, name: String, distance: f32) {
         self.leaves.push(name);
         self.leaf_distances.push(distance);
     }
 
     #[allow(dead_code)]
-    pub fn add_branch(&mut self, mut branch: Tree, distance: f64) {
+    pub fn add_branch(&mut self, mut branch: Tree, distance: f32) {
         branch.levels_from_root = self.levels_from_root + 1;
         branch.branch_number = self.branches.len() + 1;
 
@@ -47,19 +46,19 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    fn build_depth_first_path(&self) -> Vec<Vec<(&Tree, &f64)>> {
-        let mut path = Vec::<Vec<(&Tree, &f64)>>::new();
+    fn build_depth_first_path(&self) -> Vec<Vec<(&Tree, &f32)>> {
+        let mut path = Vec::<Vec<(&Tree, &f32)>>::new();
         for b in 0..self.branches.len() {
             let branch = self.branches.get(b).expect("Branch state invalid");
             let branch_distance = self.branch_distances.get(b).expect(
                 &format!("Branch state is invalid: Branch distance for branch {} missing", b)
             );
-            let mut branch_map= Vec::<(&Tree, &f64)>::new();
+            let mut branch_map= Vec::<(&Tree, &f32)>::new();
             branch_map.push((branch, branch_distance));
 
             path.push(branch_map);
             if branch.branches.len() > 0 {
-                let mut subpaths : Vec<Vec<(&Tree, &f64)>> = branch.build_depth_first_path();
+                let mut subpaths : Vec<Vec<(&Tree, &f32)>> = branch.build_depth_first_path();
                 path.append(&mut subpaths);
             }
         }
@@ -67,7 +66,7 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    pub fn traverse_children(&self) -> Vec<Vec<(&Tree, &f64)>> {
+    pub fn traverse_children(&self) -> Vec<Vec<(&Tree, &f32)>> {
         let children = self.build_depth_first_path();
         children
     }
@@ -77,8 +76,8 @@ impl Tree {
         /* Recursive method that parses a tree structure from a Newick formatted tree. */
         let mut leaves = Vec::<String>::new();
         let mut branches = Vec::<Tree>::new();
-        let mut leaf_distances = Vec::<f64>::new();
-        let mut branch_distances = Vec::<f64>::new();
+        let mut leaf_distances = Vec::<f32>::new();
+        let mut branch_distances = Vec::<f32>::new();
 
         let mut current_leaf = String::new();
         let mut current_distance = String::new();
@@ -96,17 +95,21 @@ impl Tree {
 
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
+            if depth < 10 {
+                print!("\r");
+                print!("{} chars left.", tree_string.len());
+            }
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c).collect();
                 let (branch, new_skip) = Tree::parse_tree_from_string(
                     remainder,
                     depth + 1,
-                    branches.len()
+                    branches.len(),
                 );
                 c += new_skip;
                 branches.push(branch);
-                branch_distances.push(f64::NAN);
+                branch_distances.push(f32::NAN);
                 read_mode = "BDON";
                 continue;
 
@@ -119,7 +122,7 @@ impl Tree {
                     } else {
                         // We found the distance of a branch, replace NAN with true distance
                         let bdsize = branch_distances.len();
-                        branch_distances[bdsize - 1] = current_distance.parse::<f64>().unwrap();
+                        branch_distances[bdsize - 1] = current_distance.parse::<f32>().unwrap();
                     }
                 } else if read_mode == "LEAF" {
                     // We found a leaf without a distance.
@@ -139,7 +142,7 @@ impl Tree {
                     } else {
                         // We found the distance of a branch, replace NAN with true distance
                         let bdsize = branch_distances.len();
-                        branch_distances[bdsize - 1] = current_distance.parse::<f64>().unwrap();
+                        branch_distances[bdsize - 1] = current_distance.parse::<f32>().unwrap();
                     }
                 } else if read_mode == "LEAF" {
                     // We found a leaf without a distance.
@@ -177,11 +180,12 @@ impl Tree {
 
     #[allow(dead_code)]
     pub fn parse(tree_string : String) -> Tree {
+        print!("\n");
         return Tree::parse_tree_from_string(tree_string, 0, 0).0;
     }
 
     #[allow(dead_code)]
-    pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f64>, branch_distances : Vec<f64>) -> Tree {
+    pub fn new(leaves : Vec<String>, branches : Vec<Tree>, leaf_distances : Vec<f32>, branch_distances : Vec<f32>) -> Tree {
 
         if (leaf_distances.len() > 0) & (leaf_distances.len() != leaves.len()) {
             panic!("Leaf distances must be empty or correspond to the number of leaves.");
@@ -192,16 +196,16 @@ impl Tree {
         }
 
         if leaf_distances.len() == 0 {
-            let mut leaf_distances : Vec<f64> = Vec::new();
+            let mut leaf_distances : Vec<f32> = Vec::new();
             for _n in 0..branches.len() {
-                leaf_distances.push(f64::NAN);
+                leaf_distances.push(f32::NAN);
             }
         }
 
         if branch_distances.len() == 0 {
-            let mut branch_distances : Vec<f64> = Vec::new();
+            let mut branch_distances : Vec<f32> = Vec::new();
             for _n in 0..branches.len() {
-                branch_distances.push(f64::NAN);
+                branch_distances.push(f32::NAN);
             }
         }
 
@@ -231,11 +235,11 @@ impl Tree {
             }
         }
 
-        let mut leaf_distance_matrix : Array2<f64> = Array2::zeros((n_leaves, max_depth + 1));
+        let mut leaf_distance_matrix : Array2<f32> = Array2::zeros((n_leaves, max_depth + 1));
         let mut identity_matrix : Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
 
         let mut finished_leaves : Vec<usize> = Vec::new();
-        let mut accumulated_distances : Vec<f64> = Vec::new();
+        let mut accumulated_distances : Vec<f32> = Vec::new();
         let mut internal_nodes : Vec<usize> = Vec::new();
 
         let mut previous_level = 0;

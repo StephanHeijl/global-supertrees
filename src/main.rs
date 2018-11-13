@@ -13,9 +13,7 @@ mod test_tree_parsing;
 
 
 fn main() {
-    //let mut fname = String::from("/home/sheijl/alignment-analysis/trees/data/3DM/sixhairpin_gent_2017/webcache/1/1/alignment.ftree");
-    //let mut fname = String::from("/home/stephan/newick_trees/1.tree");
-    let mut fname = String::from("/home/sheijl/alignment-analysis/trees/data/3DM/rna_ligase_virusx_2016/webcache/1/1/alignment.ftree");
+    let mut fname = String::from("/home/stephan/newick_trees/1.tree");
     for (a, arg) in env::args().enumerate() {
         if a == 1 {
             fname = arg;
@@ -39,5 +37,5 @@ fn main() {
     let distance_matrix = parsed_tree.to_distance_matrix();
     println!("Built distance_matrix in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
     println!("{:?}", distance_matrix.shape());
-    //println!("{}", distance_matrix.to_csv());
+    println!("{}", distance_matrix.to_csv());
 }

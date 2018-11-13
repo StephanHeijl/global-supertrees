@@ -1,33 +1,38 @@
-use std::f64;
+use std::f32;
 use std::collections::HashMap;
 use ndarray::prelude::*;
+use ndarray::stack;
 use tree::*;
+use std::cmp::min;
+use rayon::prelude::*;
+use std::process;
+
 
 #[derive(Debug)]
 pub struct TreeDistanceMatrix {
     pub leaf_map: HashMap<String, usize>,
     pub leaf_map_inv: HashMap<usize, String>,
-    pub distance_matrix: Array2<f64>
+    pub distance_matrix: Array2<f32>
 }
 
 impl TreeDistanceMatrix {
-    pub fn calculate_q_matrix(dm : &Array2<f64>) -> Array2<f64> {
-        let mut q_matrix : Array2<f64 >= Array2::zeros(dm.raw_dim());
+    pub fn calculate_q_matrix(dm : &Array2<f32>) -> Array2<f32> {
+        let mut q_matrix : Array2<f32 >= Array2::zeros(dm.raw_dim());
         let n = dm.shape()[0];  // Number of taxa
 
         for i in 0..n {
             for j in 0..n {
-                q_matrix[[i, j]] =  ((n as f64 - 2.0) * dm[[i, j]]) -
-                                     dm.row(i).scalar_sum() -
-                                     dm.column(j).scalar_sum();
+                q_matrix[[i, j]] =  ((n as f32 - 2.0) * dm[[i, j]]) -
+                    dm.row(i).scalar_sum() -
+                    dm.column(j).scalar_sum();
             }
         }
         q_matrix
     }
 
-    pub fn calculate_pair_distance_matrix(i : usize, j : usize, dm : &Array2<f64>) -> Array2<f64> {
+    pub fn calculate_pair_distance_matrix(i : usize, j : usize, dm : &Array2<f32>) -> Array2<f32> {
         // Create new distance matrix with the new pair as a single node.
-        let mut new_distances : Array2<f64 >= Array2::zeros(
+        let mut new_distances : Array2<f32 >= Array2::zeros(
             (dm.shape()[0] - 1, dm.shape()[1] - 1)
         );
         // New indexes
@@ -63,10 +68,10 @@ impl TreeDistanceMatrix {
         return new_distances;
     }
 
-    pub fn calculate_new_leaf_distances(f : usize, g : usize, dm : &Array2<f64>) -> (f64, f64) {
+    pub fn calculate_new_leaf_distances(f : usize, g : usize, dm : &Array2<f32>) -> (f32, f32) {
         /* Finds the leaf distances for the pair inside the Tree node. */
         // f and g are the paired taxa and u is the new created node.
-        let n = dm.shape()[0] as f64;
+        let n = dm.shape()[0] as f32;
 
         let d_fu = 0.5 * dm[[f, g]] + (1.0 / (2.0 * (n - 2.0))) * (dm.row(f).scalar_sum() - dm.row(g).scalar_sum());
         let d_gu = dm[[f, g]] - d_fu;
@@ -74,11 +79,11 @@ impl TreeDistanceMatrix {
         return (d_fu, d_gu);
     }
 
-    pub fn find_min_matrix_ne(matrix : Array2<f64>) -> [usize; 2] {
+    pub fn find_min_matrix_ne(matrix : Array2<f32>) -> [usize; 2] {
         /* Returns the lowest index in the matrix where i != j */
-        let mut lowest : f64 = f64::MAX;
+        let mut lowest : f32 = f32::MAX;
         let mut idx = [0, 0];
-        let mut v : f64;
+        let mut v : f32;
         for i in 0..matrix.shape()[0] {
             for j in 0..matrix.shape()[1] {
                 if i != j {
@@ -137,7 +142,7 @@ impl TreeDistanceMatrix {
 
             let new_pair_dest =
 
-            println!("{:?} -> {:?} ({})", distance_matrix.shape(), lowest_pair, iteration);
+                println!("{:?} -> {:?} ({})", distance_matrix.shape(), lowest_pair, iteration);
             iteration += 1;
         }
 
@@ -146,7 +151,7 @@ impl TreeDistanceMatrix {
 
 
     #[allow(dead_code)]
-    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f64 {
+    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f32 {
         let l1 : usize = self.leaf_map[&leaf_one];
         let l2 : usize = self.leaf_map[&leaf_two];
 
@@ -251,40 +256,125 @@ impl TreeDistanceMatrix {
         return 0;
     }
 
-
-    fn generate_partial_distance_matrix(leaf_distance_matrix : &Array2<f64>,
+    #[cfg(not(feature = "singlecore"))]
+    fn generate_partial_distance_matrix(leaf_distance_matrix : &Array2<f32>,
                                         identity_matrix: &Array2<usize>,
-                                        start: usize,
-                                        stop: usize) -> Array2<f64> {
+                                        iteration : usize,
+                                        size : usize ) -> Array2<f32> {
 
-        let n : usize;
-        if stop >= leaf_distance_matrix.shape()[0] {
-            n = leaf_distance_matrix.shape()[0] - 1 - start;
-        } else {
-            n = stop - start;
-        }
+
 
         //println!("{}->{}  {:?}", start, stop, leaf_distance_matrix.shape());
-        let mut distance_matrix : Array2<f64 >= Array2::zeros((n, n));
+        let mut distance_matrix : Array2<f32 >= Array2::zeros((size, size));
+        let n_leaves = identity_matrix.shape()[0];
 
-        for x in 0..n {
-            for y in 0..n {
+        let n_partials_axis = ((n_leaves as f32) / (size as f32)).ceil() as usize;
+
+        let x_iter = iteration % n_partials_axis;
+        let y_iter = iteration / n_partials_axis;
+
+        let x_start = x_iter * size;
+        let x_stop = min(x_iter * size + size, n_leaves);
+        let y_start = y_iter * size;
+        let y_stop = min(y_iter * size + size, n_leaves);
+
+        for x in x_start..x_stop {
+            for y in y_start..y_stop {
+                let xd = x - x_start;
+                let yd = y - y_start;
+
+                if x == y {
+                    distance_matrix[[xd, yd]] = 0.0;
+                    continue;
+                }
+
+                let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, identity_matrix);
+                let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, identity_matrix);
+
+                // Find the total distance from each leaf to the root.
+                let leaf_root_distance : f32 = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
+
+                // Find the distance between the root and the first common ancestor.
+                let root_fca_distance: f32  = leaf_distance_matrix[[x, fca]];
+                let distance = f32::abs(leaf_root_distance - (root_fca_distance * 2.0));
+
+                // Add the distance to the distance matrix
+                distance_matrix[[xd, yd]] = distance;
+            }
+        }
+
+        distance_matrix
+    }
+
+    #[cfg(not(feature = "singlecore"))]
+    fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f32>,
+                                     identity_matrix: Array2<usize>,
+                                     n_leaves : usize) -> Array2<f32> {
+        /* Generates a full distance matrix */
+
+        //let mut distance_matrices : Vec<Array2<f32>> = Vec::new();
+        let max_size = 2048.0;
+        println!("{}", n_leaves);
+        //process::exit(0x0100);
+        let parts = ((n_leaves as f32) / max_size).ceil() as usize;
+
+        let starts : Vec<usize> = (0..parts.pow(2)).collect();
+
+
+        let distance_matrices : Vec<Array2<f32>> = starts.par_iter().map(
+            |&s| TreeDistanceMatrix::generate_partial_distance_matrix(
+                &leaf_distance_matrix,
+                &identity_matrix,
+                s,
+                max_size as usize
+            )
+        ).collect();
+
+        // Compile partial distance matrices
+        let mut rows : Vec<Array2<f32>> = Vec::new();
+        for x in 0..parts {
+            let start_x = x * parts;
+            let stop_x = x * parts + parts;
+            let row : Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, ndarray::Dim<[usize; 2]>>> = distance_matrices[start_x..stop_x].iter().map(
+                |dm| dm.view()
+            ).collect();
+            rows.push(stack(Axis(1), &row).unwrap());
+        }
+
+        let row_views : Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, ndarray::Dim<[usize; 2]>>> = rows.iter().map(
+            |row| row.view()
+        ).collect();
+
+        let distance_matrix = stack(Axis(0), &row_views).unwrap();
+        distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned()
+    }
+
+    #[cfg(feature = "singlecore")]
+    fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f32>,
+                                     identity_matrix: Array2<usize>,
+                                     n_leaves : usize) -> Array2<f32> {
+        /* Generates a full distance matrix */
+
+        let mut distance_matrix : Array2<f32 >= Array2::zeros((n_leaves, n_leaves));
+
+        for x in 0..n_leaves {
+            /* Iterate over each leaf for the X axis. */
+            for y in 0..n_leaves {
+                /* Iterate over each leaf for the Y axis */
                 if x == y {
                     distance_matrix[[x, y]] = 0.0;
                     continue;
                 }
-                let x_full = x + start;
-                let y_full = y + start;
 
-                let (xi, yi) = TreeDistanceMatrix::find_final_parent(x_full, y_full, identity_matrix);
-                let fca = TreeDistanceMatrix::find_first_common_ancestor(x_full, y_full, identity_matrix);
+                let (xi, yi) = TreeDistanceMatrix::find_final_parent(x, y, &identity_matrix);
+                let fca = TreeDistanceMatrix::find_first_common_ancestor(x, y, &identity_matrix);
 
                 // Find the total distance from each leaf to the root.
-                let leaf_root_distance : f64 = leaf_distance_matrix[[x_full, xi]] + leaf_distance_matrix[[y_full, yi]];
+                let leaf_root_distance : f32 = leaf_distance_matrix[[x, xi]] + leaf_distance_matrix[[y, yi]];
 
                 // Find the distance between the root and the first common ancestor.
-                let root_fca_distance: f64  = leaf_distance_matrix[[x_full, fca]];
-                let distance = f64::abs(leaf_root_distance - (root_fca_distance * 2.0));
+                let root_fca_distance: f32  = leaf_distance_matrix[[x, fca]];
+                let distance = f32::abs(leaf_root_distance - (root_fca_distance * 2.0));
                 distance_matrix[[x, y]] = distance;
             }
         }
@@ -293,34 +383,7 @@ impl TreeDistanceMatrix {
     }
 
 
-    fn generate_full_distance_matrix(leaf_distance_matrix : Array2<f64>,
-                                     identity_matrix: Array2<usize>,
-                                     n_leaves : usize) -> Array2<f64> {
-        /* Generates a full distance matrix */
-
-        //let mut distance_matrices : Vec<Array2<f64>> = Vec::new();
-        let max_size = 32.0;
-        let parts = ((n_leaves as f64) / max_size).ceil() as usize;
-
-        let starts : Vec<usize> = (0..parts).collect();
-        println!("{:?}", starts);
-
-        let distance_matrices : Vec<Array2<f64>> = starts.iter().map(
-            |&s| TreeDistanceMatrix::generate_partial_distance_matrix(
-                &leaf_distance_matrix,
-                &identity_matrix,
-                (s * max_size as usize),
-                ((s+1) * max_size as usize)
-            )
-        ).collect();
-
-        println!("{:?}", distance_matrices);
-
-        let mut distance_matrix : Array2<f64 >= Array2::zeros((2, 2));
-        distance_matrix
-    }
-
-    pub fn new(leaf_distance_matrix : Array2<f64>,
+    pub fn new(leaf_distance_matrix : Array2<f32>,
                identity_matrix: Array2<usize>,
                leaf_map: HashMap<String, usize>) -> TreeDistanceMatrix {
         let n_leaves = leaf_map.len();
@@ -330,15 +393,16 @@ impl TreeDistanceMatrix {
             leaf_map_inv.insert(*value, key.to_string());
         }
 
-        let tdm = TreeDistanceMatrix {
+        let distance_matrix = TreeDistanceMatrix::generate_full_distance_matrix(
+            leaf_distance_matrix,
+            identity_matrix,
+            n_leaves
+        );
+
+        TreeDistanceMatrix {
             leaf_map,
             leaf_map_inv,
-            distance_matrix : TreeDistanceMatrix::generate_full_distance_matrix(
-                leaf_distance_matrix,
-                identity_matrix,
-                n_leaves
-            )
-        };
-        tdm
+            distance_matrix
+        }
     }
 }
