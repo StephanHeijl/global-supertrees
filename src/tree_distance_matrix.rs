@@ -1,11 +1,7 @@
 use std::f32;
 use std::collections::HashMap;
 use ndarray::prelude::*;
-use ndarray::stack;
 use tree::*;
-use std::cmp::min;
-use rayon::prelude::*;
-use std::process;
 
 
 #[derive(Debug)]
@@ -100,53 +96,97 @@ impl TreeDistanceMatrix {
 
     pub fn neighbour_joining(&self) -> Tree {
         let mut distance_matrix = self.distance_matrix.clone();
+        let mut leaf_map_inv_vec : Vec<(usize, String)> = self.leaf_map_inv.iter().map(
+            | val | (*val.0, val.1.clone())
+        ).collect();
 
-        let mut trees : Vec<Tree> = Vec::new();
-        let mut iteration = 0;
+        leaf_map_inv_vec.sort_by(|a, b| a.0.cmp(&b.0));
 
-        while distance_matrix.shape()[0] > 2 {
+        let mut trees : HashMap<usize, Tree> = HashMap::new();
+
+        while distance_matrix.shape()[0] > 1 {
+            // Calculate the Q matrix
             let q_matrix = TreeDistanceMatrix::calculate_q_matrix(
                 &distance_matrix
             );
+            // Find the pair of leaves that have the lowest value in the q_matrix
             let lowest_pair = TreeDistanceMatrix::find_min_matrix_ne(q_matrix);
 
+            // Calculate the distance matrix from each of the taxa to the new node
+            // In this pair_distance_matrix, the final row/col is now designated the previously
+            // selected pair.
             let pair_distance_matrix = TreeDistanceMatrix::calculate_pair_distance_matrix(
                 lowest_pair[0], lowest_pair[1], &distance_matrix
             );
+
+            // Calculate the distances between the new node and the two merged taxa
             let pair_leaf_distances = TreeDistanceMatrix::calculate_new_leaf_distances(
                 lowest_pair[0], lowest_pair[1], &distance_matrix
             );
 
-            let tree_idx : Vec<usize> = ((pair_distance_matrix.shape()[0] - iteration)..(pair_distance_matrix.shape()[0] + 1)).collect();
-            println!("{:?}", tree_idx);
+            let mut leaves : Vec<String> = Vec::new();
+            let mut branches: Vec<Tree> = Vec::new();
+            let mut leaf_distances: Vec<f32> = Vec::new();
+            let mut branch_distances: Vec<f32> = Vec::new();
 
-            if tree_idx.contains(&lowest_pair[0]) {
-
+            //println!("{:?}", trees);
+            // Check if the first node is already a tree
+            let mut rem_leaves : Vec<usize> = Vec::new();
+            if trees.contains_key(&lowest_pair[0]) {
+                branches.push(trees.remove(&lowest_pair[0]).unwrap());
+                branch_distances.push(pair_leaf_distances.0);
+            } else {
+                rem_leaves.push(lowest_pair[0]);
+                leaves.push(leaf_map_inv_vec.get(lowest_pair[0]).unwrap().1.clone());
+                leaf_distances.push(pair_leaf_distances.0);
             }
 
-            let mut leaves = Vec::new();
-            leaves.push(self.leaf_map_inv[&lowest_pair[0]].clone());
-            leaves.push(self.leaf_map_inv[&lowest_pair[1]].clone());
+            // Check if the second node is already a tree
+            if trees.contains_key(&lowest_pair[1]) {
+                branches.push(trees.remove(&lowest_pair[1]).unwrap());
+                branch_distances.push(pair_leaf_distances.1);
+            } else {
+                rem_leaves.push(lowest_pair[1]);
+                leaves.push(leaf_map_inv_vec.get(lowest_pair[1]).unwrap().1.clone());
+                leaf_distances.push(pair_leaf_distances.1);
+            }
 
+            // Remove leaves from the leaf map if they have been selected
+            let mut leaf_map_inv_vec_new = Vec::new();
+            for (i, el) in leaf_map_inv_vec.clone().iter().enumerate() {
+                if !rem_leaves.contains(&i) {
+                    leaf_map_inv_vec_new.push(el.clone());
+                }
+            }
+            leaf_map_inv_vec = leaf_map_inv_vec_new.clone();
+
+            // Shift all the trees to conform to the new shifted index, the distance matrix shrunk
+            // and the new node is the new final tree.
+            let mut trees_new : HashMap<usize, Tree> = HashMap::new();
+            // Get the tree keys without borrowing them.
+            let tree_keys : Vec<usize> = trees.keys().map(| x | *x).collect();
+            for idx in tree_keys {
+                trees_new.insert(idx - 2, trees.remove(&idx).unwrap());
+            }
+            trees = trees_new;
+
+            // Create a new Tree based on the selected pair of nodes
             let inner_tree = Tree::new(
                 leaves,
-                vec!(),
-                vec!(pair_leaf_distances.0, pair_leaf_distances.1),
-                vec!()
+                branches,
+                leaf_distances,
+                branch_distances
             );
             distance_matrix = pair_distance_matrix;
 
-
-
-            trees.push(inner_tree);
-
-            let new_pair_dest =
-
-                println!("{:?} -> {:?} ({})", distance_matrix.shape(), lowest_pair, iteration);
-            iteration += 1;
+            trees.insert(distance_matrix.shape()[0] - 1, inner_tree);
         }
-
-        return Tree::new(vec!(), vec!(), vec!(), vec!());
+        assert_eq!(trees.len(), 1);
+        let tree_keys : Vec<usize> = trees.keys().map(| x | *x).collect();
+        for (key, tree) in trees.iter() {
+            println!("{} => {:?}", &key, &tree);
+        }
+        return trees.remove(&tree_keys[0]).unwrap();
     }
 
 
@@ -315,7 +355,6 @@ impl TreeDistanceMatrix {
         //let mut distance_matrices : Vec<Array2<f32>> = Vec::new();
         let max_size = 2048.0;
         println!("{}", n_leaves);
-        //process::exit(0x0100);
         let parts = ((n_leaves as f32) / max_size).ceil() as usize;
 
         let starts : Vec<usize> = (0..parts.pow(2)).collect();

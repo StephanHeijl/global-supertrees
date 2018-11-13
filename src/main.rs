@@ -29,7 +29,7 @@ fn main() {
     println!("Parsed tree in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
 
     let now = time::Instant::now();
-    let children = parsed_tree.traverse_children();
+    let _children = parsed_tree.traverse_children();
     println!("Built tree traversal map in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
     //println!("{:?}", children)
 

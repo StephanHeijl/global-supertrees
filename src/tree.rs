@@ -2,7 +2,6 @@ use std::f32;
 use std::collections::HashMap;
 use ndarray::prelude::*;
 use tree_distance_matrix::*;
-use std::process;
 
 #[derive(Debug)]
 pub struct Tree {
@@ -95,10 +94,10 @@ impl Tree {
 
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
-            if depth < 10 {
-                print!("\r");
-                print!("{} chars left.", tree_string.len());
-            }
+//            if depth < 10 {
+//                print!("\r");
+//                print!("{} chars left.", tree_string.len());
+//            }
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c).collect();
@@ -147,9 +146,9 @@ impl Tree {
                 } else if read_mode == "LEAF" {
                     // We found a leaf without a distance.
                     leaves.push(current_leaf.clone());
-                } else if read_mode == "BDON" {
+                } /*else if read_mode == "BDON" {
                     read_mode = "LEAF";
-                }
+                }*/
 
                 read_mode = "LEAF";
                 current_leaf = String::new();

@@ -113,10 +113,10 @@ mod tests {
 
     #[test]
     fn test_neighbour_joining() {
-        let filename = String::from("/home/stephan/newick_trees/1.tree");
-        let tree_file = utils::load_tree_file(filename);
-        let parsed_tree = tree::Tree::parse(tree_file);
+        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let parsed_tree = tree::Tree::parse(tree_string);
         let distance_matrix = parsed_tree.to_distance_matrix();
+        println!("{:?}", distance_matrix.leaf_map);
         distance_matrix.neighbour_joining();
     }
 }
