@@ -2,6 +2,9 @@ use std::f32;
 use std::collections::HashMap;
 use ndarray::prelude::*;
 use tree::*;
+use ndarray::stack;
+use std::cmp::min;
+use rayon::prelude::*;
 
 
 #[derive(Debug)]
@@ -39,7 +42,6 @@ impl TreeDistanceMatrix {
         for x in 0..dm.shape()[0] {
             y_n = 0;
             for y in 0..dm.shape()[1] {
-                //println!("{},{}, {:?}, {:?}, {}, {}, {}, {}", x, y, new_distances.shape(), dm.shape(), x_n, y_n, i, j);
                 if (x == i) | (x == j) {
                     new_distances[[final_idx, y_n]] = 0.5 * (
                         dm[[i, y]] + dm[[j, y]] - dm[[i, j]]
@@ -66,10 +68,14 @@ impl TreeDistanceMatrix {
 
     pub fn calculate_new_leaf_distances(f : usize, g : usize, dm : &Array2<f32>) -> (f32, f32) {
         /* Finds the leaf distances for the pair inside the Tree node. */
+
         // f and g are the paired taxa and u is the new created node.
         let n = dm.shape()[0] as f32;
 
         let d_fu = 0.5 * dm[[f, g]] + (1.0 / (2.0 * (n - 2.0))) * (dm.row(f).scalar_sum() - dm.row(g).scalar_sum());
+        if d_fu.is_nan() {
+            return (0.0, 0.0);
+        }
         let d_gu = dm[[f, g]] - d_fu;
 
         return (d_fu, d_gu);
@@ -183,10 +189,10 @@ impl TreeDistanceMatrix {
         }
         assert_eq!(trees.len(), 1);
         let tree_keys : Vec<usize> = trees.keys().map(| x | *x).collect();
-        for (key, tree) in trees.iter() {
-            println!("{} => {:?}", &key, &tree);
-        }
-        return trees.remove(&tree_keys[0]).unwrap();
+        let mut result_tree = trees.remove(&tree_keys[0]).unwrap();
+        result_tree.add_root_levels(0);
+        return result_tree;
+
     }
 
 
@@ -354,7 +360,6 @@ impl TreeDistanceMatrix {
 
         //let mut distance_matrices : Vec<Array2<f32>> = Vec::new();
         let max_size = 2048.0;
-        println!("{}", n_leaves);
         let parts = ((n_leaves as f32) / max_size).ceil() as usize;
 
         let starts : Vec<usize> = (0..parts.pow(2)).collect();

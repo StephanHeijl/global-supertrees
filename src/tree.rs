@@ -13,6 +13,33 @@ pub struct Tree {
     branch_number: usize
 }
 
+// Implement partial equality. Trees can have the same structure but be defined differently.
+// Thus this equality is intended to be a close approximation. If this returns true, the trees are
+// not necessarily exact equals, but they do contain all the same leaves and all siblings are identical.
+// http://evolution.genetics.washington.edu/phylip/newicktree.html
+impl PartialEq for Tree {
+    fn eq(&self, other : &Tree) -> bool {
+        let mut leaves_self : Vec<Vec<String>> = Vec::new();
+        let mut leaves_other : Vec<Vec<String>> = Vec::new();
+
+        for branch in self.traverse_children() {
+            let mut l = branch[0].0.leaves.clone();
+            l.sort();
+            leaves_self.push(l);
+        }
+        for branch in other.traverse_children() {
+            let mut l = branch[0].0.leaves.clone();
+            l.sort();
+            leaves_other.push(l);
+        }
+
+        leaves_self.sort();
+        leaves_other.sort();
+
+        return leaves_self == leaves_other;
+    }
+}
+
 
 impl Tree {
     #[allow(dead_code)]
@@ -179,8 +206,15 @@ impl Tree {
 
     #[allow(dead_code)]
     pub fn parse(tree_string : String) -> Tree {
-        print!("\n");
         return Tree::parse_tree_from_string(tree_string, 0, 0).0;
+    }
+
+
+    pub fn add_root_levels(&mut self, depth : usize) {
+        self.levels_from_root = depth;
+        for mut branch in self.branches.iter_mut() {
+            branch.add_root_levels(depth + 1);
+        }
     }
 
     #[allow(dead_code)]
