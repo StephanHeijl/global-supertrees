@@ -10,6 +10,7 @@ mod utils;
 mod tests;
 mod tree_distance_matrix;
 mod test_tree_parsing;
+mod tree_merging;
 
 
 fn main() {

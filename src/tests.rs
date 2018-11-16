@@ -2,6 +2,7 @@
 mod tests {
     use::tree;
     use::tree_distance_matrix;
+    use::tree_merging;
     use::utils;
     use ndarray::prelude::*;
 
@@ -118,5 +119,20 @@ mod tests {
         let distance_matrix = parsed_tree.to_distance_matrix();
         let nj_tree = distance_matrix.neighbour_joining();
         assert_eq!(parsed_tree, nj_tree);
+    }
+
+    #[test]
+    fn test_tree_merging() {
+        let tree_string_one = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let tree_string_two = String::from("(Cow:0.29395,(Hylobates:0.16079,(Pongo:0.53636,(G._Gorilla:0.07147,(P._paniscus:0.09268,H._sapiens:0.41927):0.01386):0.12124):0.45057):0.34939,Rodent:2.21460);");
+
+        let tree_one = tree::Tree::parse(tree_string_one);
+        let tree_two = tree::Tree::parse(tree_string_two);
+
+        tree_merging::merge_trees(
+            vec!(tree_one, tree_two)
+        );
+
+
     }
 }

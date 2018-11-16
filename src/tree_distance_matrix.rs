@@ -205,6 +205,13 @@ impl TreeDistanceMatrix {
     }
 
     #[allow(dead_code)]
+    pub fn get_distance_ref(&self, leaf_one : &String, leaf_two : &String) -> f32 {
+        let l1 : usize = self.leaf_map[leaf_one];
+        let l2 : usize = self.leaf_map[leaf_two];
+        self.distance_matrix[[l1, l2]]
+    }
+
+    #[allow(dead_code)]
     pub fn to_csv(&self) -> String {
         let mut csv = String::from("");
         let delim = ',';
@@ -311,7 +318,7 @@ impl TreeDistanceMatrix {
 
 
         //println!("{}->{}  {:?}", start, stop, leaf_distance_matrix.shape());
-        let mut distance_matrix : Array2<f32 >= Array2::zeros((size, size));
+        let mut distance_matrix : Array2<f32> = Array2::zeros((size, size));
         let n_leaves = identity_matrix.shape()[0];
 
         let n_partials_axis = ((n_leaves as f32) / (size as f32)).ceil() as usize;
