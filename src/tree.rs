@@ -44,6 +44,7 @@ impl PartialEq for Tree {
 impl Tree {
     #[allow(dead_code)]
     pub fn get_leaves(&self) -> HashMap<&String, &f32> {
+        /* Returns a HashMap of leaves on this tree with their respective distances. */
         let mut leaves_map = HashMap::new();
         for l in 0..self.leaves.len() {
             leaves_map.insert(

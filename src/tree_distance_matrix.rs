@@ -5,6 +5,7 @@ use tree::*;
 use ndarray::stack;
 use std::cmp::min;
 use rayon::prelude::*;
+use utils;
 
 
 #[derive(Debug)]
@@ -110,6 +111,7 @@ impl TreeDistanceMatrix {
 
         let mut trees : HashMap<usize, Tree> = HashMap::new();
 
+
         while distance_matrix.shape()[0] > 1 {
             // Calculate the Q matrix
             let q_matrix = TreeDistanceMatrix::calculate_q_matrix(
@@ -197,18 +199,25 @@ impl TreeDistanceMatrix {
 
 
     #[allow(dead_code)]
-    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> f32 {
-        let l1 : usize = self.leaf_map[&leaf_one];
-        let l2 : usize = self.leaf_map[&leaf_two];
-
-        self.distance_matrix[[l1, l2]]
+    pub fn get_distance(&self, leaf_one : String, leaf_two : String) -> Option<f32> {
+        return self.get_distance_ref(&leaf_one, &leaf_two);
     }
 
     #[allow(dead_code)]
-    pub fn get_distance_ref(&self, leaf_one : &String, leaf_two : &String) -> f32 {
-        let l1 : usize = self.leaf_map[leaf_one];
-        let l2 : usize = self.leaf_map[leaf_two];
-        self.distance_matrix[[l1, l2]]
+    pub fn get_distance_ref(&self, leaf_one : &String, leaf_two : &String) -> Option<f32>  {
+        let l1 : Option<&usize> = self.leaf_map.get(leaf_one);
+        let l2 : Option<&usize> = self.leaf_map.get(leaf_two);
+        let x : usize;
+        let y : usize;
+        match l1 {
+            Some(i) => {x = *i},
+            None => { return None; }
+        }
+        match l2 {
+            Some(i) => {y = *i},
+            None => { return None; }
+        }
+        return Some(self.distance_matrix[[x, y]]);
     }
 
     #[allow(dead_code)]
@@ -433,6 +442,34 @@ impl TreeDistanceMatrix {
         distance_matrix
     }
 
+    pub fn get_partial_distance_matrix(&self, leaves : &Vec<String>) -> TreeDistanceMatrix {
+        let mut leaf_map : HashMap<String, usize> = HashMap::new();
+        let mut leaf_map_inv : HashMap<usize, String> = HashMap::new();
+        let self_leaves : Vec<String> = utils::keys_vec(&self.leaf_map);
+
+        let mut l = 0;
+        let mut dm_idx : Vec<usize> = Vec::new();
+        for leaf in leaves.iter() {
+            if self_leaves.contains(&leaf) {
+                leaf_map.insert(leaf.clone(), l);
+                leaf_map_inv.insert(l, leaf.clone());
+                dm_idx.push(self.leaf_map[leaf]);
+                l += 1;
+            }
+        }
+
+        let mut ndm : Array2<f32> = Array2::zeros((l, l));
+
+        for (x, ix) in dm_idx.iter().enumerate() {
+            for (y, iy) in dm_idx.iter().enumerate() {
+                ndm[[x, y]] = self.distance_matrix[[*ix, *iy]];
+            }
+        }
+
+        return TreeDistanceMatrix::new_from_matrix_and_leaves(ndm, leaves.to_vec());
+
+    }
+
 
     pub fn new(leaf_distance_matrix : Array2<f32>,
                identity_matrix: Array2<usize>,
@@ -455,5 +492,22 @@ impl TreeDistanceMatrix {
             leaf_map_inv,
             distance_matrix
         }
+    }
+
+    pub fn new_from_matrix_and_leaves(distance_matrix : Array2<f32>, leaves : Vec<String>) -> TreeDistanceMatrix {
+
+        let mut leaf_map : HashMap<String, usize> = HashMap::new();
+        let mut leaf_map_inv : HashMap<usize, String> = HashMap::new();
+
+        for (i, leaf) in leaves.iter().enumerate() {
+            leaf_map.insert(leaf.clone(), i);
+            leaf_map_inv.insert(i, leaf.clone());
+        }
+
+        return TreeDistanceMatrix {
+            leaf_map,
+            leaf_map_inv,
+            distance_matrix
+        };
     }
 }
