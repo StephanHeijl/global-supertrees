@@ -375,7 +375,7 @@ impl TreeDistanceMatrix {
         /* Generates a full distance matrix */
 
         //let mut distance_matrices : Vec<Array2<f32>> = Vec::new();
-        let max_size = 2048.0;
+        let max_size = 2048 as f32;
         let parts = ((n_leaves as f32) / max_size).ceil() as usize;
 
         let starts : Vec<usize> = (0..parts.pow(2)).collect();
@@ -400,6 +400,8 @@ impl TreeDistanceMatrix {
             ).collect();
             rows.push(stack(Axis(1), &row).unwrap());
         }
+
+
 
         let row_views : Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, ndarray::Dim<[usize; 2]>>> = rows.iter().map(
             |row| row.view()

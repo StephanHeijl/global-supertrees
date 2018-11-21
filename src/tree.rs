@@ -23,12 +23,12 @@ impl PartialEq for Tree {
         let mut leaves_other : Vec<Vec<String>> = Vec::new();
 
         for branch in self.traverse_children() {
-            let mut l = branch[0].0.leaves.clone();
+            let mut l = branch.0.leaves.clone();
             l.sort();
             leaves_self.push(l);
         }
         for branch in other.traverse_children() {
-            let mut l = branch[0].0.leaves.clone();
+            let mut l = branch.0.leaves.clone();
             l.sort();
             leaves_other.push(l);
         }
@@ -73,19 +73,17 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    fn build_depth_first_path(&self) -> Vec<Vec<(&Tree, &f32)>> {
-        let mut path = Vec::<Vec<(&Tree, &f32)>>::new();
+    fn build_depth_first_path(&self) -> Vec<(&Tree, &f32)> {
+        let mut path = Vec::<(&Tree, &f32)>::new();
         for b in 0..self.branches.len() {
             let branch = self.branches.get(b).expect("Branch state invalid");
             let branch_distance = self.branch_distances.get(b).expect(
                 &format!("Branch state is invalid: Branch distance for branch {} missing", b)
             );
-            let mut branch_map= Vec::<(&Tree, &f32)>::new();
-            branch_map.push((branch, branch_distance));
 
-            path.push(branch_map);
+            path.push((branch, branch_distance));
             if branch.branches.len() > 0 {
-                let mut subpaths : Vec<Vec<(&Tree, &f32)>> = branch.build_depth_first_path();
+                let mut subpaths : Vec<(&Tree, &f32)> = branch.build_depth_first_path();
                 path.append(&mut subpaths);
             }
         }
@@ -93,10 +91,11 @@ impl Tree {
     }
 
     #[allow(dead_code)]
-    pub fn traverse_children(&self) -> Vec<Vec<(&Tree, &f32)>> {
+    pub fn traverse_children(&self) -> Vec<(&Tree, &f32)> {
         let children = self.build_depth_first_path();
         children
     }
+
 
     #[allow(dead_code)]
     fn parse_tree_from_string(tree_string : String, depth : usize, branch_number : usize) -> (Tree, usize) {
@@ -260,12 +259,12 @@ impl Tree {
         let mut leaf_map : HashMap<String, usize> = HashMap::new();
 
         for child in self.traverse_children() {
-            for leaf in child[0].0.leaves.iter() {
+            for leaf in child.0.leaves.iter() {
                 leaf_map.insert(leaf.clone(), n_leaves);
                 n_leaves += 1;
             }
-            if child[0].0.levels_from_root > max_depth {
-                max_depth = child[0].0.levels_from_root;
+            if child.0.levels_from_root > max_depth {
+                max_depth = child.0.levels_from_root;
             }
         }
 
@@ -283,8 +282,8 @@ impl Tree {
         let mut current_branch_number;
 
         for (c, child) in self.traverse_children().iter().enumerate() {
-            let current_tree = child[0].0;
-            let branch_distance = child[0].1;
+            let current_tree = child.0;
+            let branch_distance = child.1;
 
             current_level = current_tree.levels_from_root;
             current_branch_number = current_tree.branch_number;

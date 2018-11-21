@@ -2,6 +2,7 @@
 extern crate ndarray;
 extern crate rayon;
 
+
 use std::time;
 use std::env;
 
@@ -38,5 +39,6 @@ fn main() {
     let distance_matrix = parsed_tree.to_distance_matrix();
     println!("Built distance_matrix in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
     println!("{:?}", distance_matrix.shape());
-    println!("{}", distance_matrix.to_csv());
+
+    //println!("{}", distance_matrix.to_csv());
 }

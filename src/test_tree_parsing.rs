@@ -19,7 +19,7 @@ mod tests {
 
         // Depth first check
         for (c, child) in children.iter().enumerate() {
-            assert_eq!(child[0].0.leaves, expected_children[c]);
+            assert_eq!(child.0.leaves, expected_children[c]);
         }
     }
 
@@ -40,7 +40,7 @@ mod tests {
 
         // Depth first check
         for (c, child) in children.iter().enumerate() {
-            assert_eq!(child[0].0.leaves, expected_children[c]);
+            assert_eq!(child.0.leaves, expected_children[c]);
         }
     }
 
@@ -62,7 +62,7 @@ mod tests {
         );
         let children = parsed_tree.traverse_children();
 
-        for (i, leaf) in children[0][0].0.leaves.iter().enumerate() {
+        for (i, leaf) in children[0].0.leaves.iter().enumerate() {
             assert_eq!(leaf, &expected_leaves[i]);
         }
     }
