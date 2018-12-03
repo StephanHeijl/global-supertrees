@@ -40,6 +40,19 @@ impl PartialEq for Tree {
     }
 }
 
+impl Clone for Tree {
+    fn clone(&self) -> Tree {
+        Tree {
+            leaves: self.leaves.iter().map( | l | l.to_string() ).collect(),
+            branches: self.branches.iter().map( | b | b.clone() ).collect(),
+            leaf_distances: self.leaf_distances.iter().map( | ld | *ld ).collect(),
+            branch_distances: self.branch_distances.iter().map( | bd | *bd ).collect(),
+            levels_from_root: self.levels_from_root,
+            branch_number: self.branch_number
+        }
+    }
+}
+
 
 impl Tree {
     #[allow(dead_code)]
@@ -90,12 +103,40 @@ impl Tree {
         path
     }
 
+    pub fn perform_operation_on_branch<F : FnMut(&mut Tree) >(&mut self, target_branch_idx : usize, mut current_branch_idx : usize, op : &mut F) -> Option<usize> {
+        for b in 0..self.branches.len() {
+            let mut branch = self.branches.get_mut(b).expect("Branch state invalid");
+            if current_branch_idx == target_branch_idx {
+                println!("{} = {}, executing operation :)", current_branch_idx, target_branch_idx);
+                op(branch);
+                return None;
+            }
+
+            if branch.branches.len() > 0 {
+                match branch.perform_operation_on_branch(target_branch_idx, current_branch_idx + 1, op) {
+                    Some(i) => { current_branch_idx = i; },
+                    None => { return None; }
+                }
+            }
+
+            current_branch_idx += 1;
+        }
+        return Some(current_branch_idx);
+
+    }
+
     #[allow(dead_code)]
     pub fn traverse_children(&self) -> Vec<(&Tree, &f32)> {
         let children = self.build_depth_first_path();
         children
     }
 
+    #[allow(dead_code)]
+    pub fn traverse_children_snapshot(&self) -> Vec<(Tree, f32)> {
+        let children = self.build_depth_first_path();
+        let snapshot_children = children.iter().map(| x | (x.0.clone(), *x.1) ).collect();
+        snapshot_children
+    }
 
     #[allow(dead_code)]
     fn parse_tree_from_string(tree_string : String, depth : usize, branch_number : usize) -> (Tree, usize) {
@@ -113,18 +154,9 @@ impl Tree {
         let mut chr : char;
 
         while c < tree_string.len() {
-//            print!("{}", c);
-//            for _c in c.to_string().chars() {
-//                print!("{}", (8u8 as char));
-//            }
-//            print!("{}", (8u8 as char));
 
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
-//            if depth < 10 {
-//                print!("\r");
-//                print!("{} chars left.", tree_string.len());
-//            }
 
             if chr == '(' {
                 let remainder = tree_string.chars().skip(c).collect();

@@ -17,7 +17,7 @@ pub fn merge_trees(trees : Vec<Tree>) {
     // Create a shared matrix from which every tree can get the new mean distances.
     let merged_distances = merge_distance_matrices(distance_matrices);
 
-    let mut new_trees : Vec<Tree> = tree_leafs.par_iter().map(
+    let new_trees : Vec<Tree> = tree_leafs.par_iter().map(
         | t | merged_distances.get_partial_distance_matrix(t).neighbour_joining()
     ).collect();
 
@@ -36,28 +36,44 @@ fn sibling_merging(mut trees : Vec<Tree>) -> () {
     trees.sort_unstable_by(
         |a , b| get_tree_size(a).cmp(&get_tree_size(b))
     );
-    let base_tree : Tree;
+    let mut base_tree : Tree;
+
     match trees.pop() {
         Some(t) => { base_tree = t; },
         None => { return; } // TODO: return an empty tree;
     }
+    println!("{:#?}", base_tree);
 
     trees.reverse();  // Start with the largest trees.
 
-    for anc in 0..max_ancestor_search {
+    for _anc in 0..max_ancestor_search {
         for tree in trees.iter() {
             //println!("{:?}", tree);
-            for (child, dist) in tree.traverse_children() {
+            for (child, _dist) in tree.traverse_children() {
                 let leaf_set = utils::vec_to_set(&child.leaves);
-                for (base_child, base_dist) in base_tree.traverse_children() {
+                for (bi, (base_child, _base_dist)) in base_tree.traverse_children_snapshot().iter().enumerate() {
                     let base_leaf_set = utils::vec_to_set(&base_child.leaves);
+                    //println!("base_leaf_set: {:?}", base_leaf_set);
+                    let overlapping_leaves : Vec<&String> = leaf_set.intersection(&base_leaf_set).collect();
+                    if overlapping_leaves.len() == 0 {
+                        continue;  // Skip if there are no overlapping siblings.
+                    }
                     let new_leaves : Vec<&String> = leaf_set.difference(&base_leaf_set).collect();
+                    if new_leaves.len() == 0 {
+                        continue; // Skip if there are no new leaves.
+                    }
+
+                    //println!("Found new siblings! {:?} in {:?}, {:?}", new_leaves, base_leaf_set, leaf_set);
 
                     for new_leaf in new_leaves.iter() {
                         match child.leaves.iter().position(| c | &c == new_leaf) {
                             Some(idx) => {
                                 let new_leaf_distance = child.leaf_distances[idx];
-                                base_child.add_leaf(new_leaf.to_string(), new_leaf_distance);
+                                base_tree.perform_operation_on_branch(
+                                    bi,
+                                    0,
+                                    &mut | t : &mut Tree | t.add_leaf(new_leaf.to_string(), new_leaf_distance)
+                                );
                             }
                             None => { continue; }
                         }
@@ -67,6 +83,7 @@ fn sibling_merging(mut trees : Vec<Tree>) -> () {
             }
         }
     }
+    println!("{:#?}", base_tree);
 }
 
 
