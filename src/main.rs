@@ -2,17 +2,15 @@
 extern crate ndarray;
 extern crate rayon;
 
-
-use std::time;
 use std::env;
+use std::time;
 
-mod tree;
-mod utils;
-mod tests;
-mod tree_distance_matrix;
 mod test_tree_parsing;
+mod tests;
+mod tree;
+mod tree_distance_matrix;
 mod tree_merging;
-
+mod utils;
 
 fn main() {
     let mut fname = String::from("/home/stephan/newick_trees/1.tree");
@@ -24,20 +22,36 @@ fn main() {
 
     let now = time::Instant::now();
     let tree_file = utils::load_tree_file(String::from(fname));
-    println!("Loaded tree in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
+    println!(
+        "Loaded tree in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
 
     let now = time::Instant::now();
     let parsed_tree = tree::Tree::parse(tree_file);
-    println!("Parsed tree in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
+    println!(
+        "Parsed tree in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
 
     let now = time::Instant::now();
     let _children = parsed_tree.traverse_children();
-    println!("Built tree traversal map in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
+    println!(
+        "Built tree traversal map in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
     //println!("{:?}", children)
 
     let now = time::Instant::now();
     let distance_matrix = parsed_tree.to_distance_matrix();
-    println!("Built distance_matrix in {}.{} seconds.", now.elapsed().as_secs(), now.elapsed().subsec_millis());
+    println!(
+        "Built distance_matrix in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
     println!("{:?}", distance_matrix.shape());
 
     //println!("{}", distance_matrix.to_csv());
