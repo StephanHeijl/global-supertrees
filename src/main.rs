@@ -1,6 +1,7 @@
 #[macro_use(s)]
 extern crate ndarray;
 extern crate rayon;
+extern crate petgraph;
 
 use std::env;
 use std::time;
@@ -11,6 +12,7 @@ mod tree;
 mod tree_distance_matrix;
 mod tree_merging;
 mod utils;
+
 
 fn main() {
     let mut fname = String::from("/home/stephan/newick_trees/1.tree");

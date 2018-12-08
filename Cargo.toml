@@ -6,6 +6,7 @@ authors = ["Stephan Heijl <sheijl@bio-prodict.nl>"]
 [dependencies]
 ndarray = "0.11.0"
 rayon = "1.0"
+petgraph = "0.4.13"
 
 [features]
 singlecore = []
