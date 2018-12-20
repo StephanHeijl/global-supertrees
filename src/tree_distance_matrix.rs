@@ -492,6 +492,8 @@ impl TreeDistanceMatrix {
             n_leaves,
         );
 
+        println!("-- {:?}", distance_matrix);
+
         TreeDistanceMatrix {
             leaf_map,
             leaf_map_inv,

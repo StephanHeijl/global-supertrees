@@ -5,28 +5,64 @@ use tree_distance_matrix::*;
 use petgraph::prelude::NodeIndex;
 use petgraph::visit::Dfs;
 use petgraph::{Graph, Incoming};
+use petgraph::algo::dijkstra;
 
 #[derive(Debug)]
 pub struct Tree {
     pub graph : Graph<String, f32>,
 }
 
+#[derive(Debug)]
+pub struct Level {
+    pub leaves : Vec<String>,
+    pub leaf_nodes : Vec<NodeIndex<u32>>,
+    pub level_distance : f32,
+    pub leaf_distances : Vec<f32>,
+    pub levels_from_root: usize,
+}
 
 impl Tree {
 
-    pub fn traverse_children(&self) -> Vec<Vec<String>> {
+    pub fn traverse_children(&self) -> Vec<Level> {
 
-        let mut children : Vec<Vec<String>> = Vec::new();
-        let mut current_branch : Vec<String> = Vec::new();
+        let mut children : Vec<Level> = Vec::new();
+        let mut cl_names : Vec<String> = Vec::new();
+        let mut cl_nodes : Vec<NodeIndex<u32>> = Vec::new();
+        let mut cl_dist : Vec<f32> = Vec::new();
+
         let mut dfs = Dfs::new(&self.graph, self.graph.node_indices().nth(0).expect(""));
 
         while let Some(node) = dfs.next(&self.graph) {
             let node_name = self.graph.node_weight(node).unwrap();
+            let mut node_distance = f32::NAN;
+
             if node_name.starts_with(">>") {
-                children.push(current_branch.clone());
-                current_branch.clear();
+                if cl_nodes.len() == 0 {
+                    continue;
+                }
+                let levels_from_root = self.get_levels_from_root(*cl_nodes.get(0).expect("Found no nodes on current level."));
+                let level = Level {
+                    leaves : cl_names.clone(),
+                    leaf_nodes : cl_nodes.clone(),
+                    leaf_distances: cl_dist.clone(),
+                    level_distance: node_distance,
+                    levels_from_root: levels_from_root,
+                };
+                children.push(level);
+
+                cl_names.clear();
+                cl_nodes.clear();
+                cl_dist.clear();
             } else {
-                current_branch.push(node_name.to_string());
+                cl_names.push(node_name.to_string());
+                cl_nodes.push(node);
+
+                match self.graph.edges_directed(node, Incoming).nth(0) {
+                    Some(edge) => { node_distance = *edge.weight(); },
+                    None => { continue; }
+                }
+
+                cl_dist.push(node_distance);
             }
         }
 
@@ -59,8 +95,8 @@ impl Tree {
                 branches.push(branch_node );
                 branch_distances.push(f32::NAN);
 
-                let (graph, new_skip) = Tree::parse_tree_from_string(
-                    remainder,  graph, branches[branches.len() - 1]
+                let (_graph, new_skip) = Tree::parse_tree_from_string(
+                    remainder, graph, branches[branches.len() - 1]
                 );
 
                 c += new_skip;
@@ -143,5 +179,97 @@ impl Tree {
         let graph : Graph<String, f32> = Graph::new();
 
         Tree { graph }
+    }
+
+    pub fn find_node_idx(&self, name : &String) -> Option<NodeIndex<u32>>{
+        for n in self.graph.node_indices() {
+            if name == self.graph.node_weight(n).expect("Graph is inconsistent.") {
+                return Some(n);
+            }
+        }
+        return None;
+    }
+
+    pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
+        let shortest_path = dijkstra(
+            &self.graph,
+            NodeIndex::new(0),
+            Some(n),
+            | edge | 1
+        );
+        let sp = shortest_path[&n];
+        if sp == 0 {
+            return 0;
+        } else {
+            return sp - 1;
+        }
+    }
+
+    pub fn to_distance_matrix(&self) -> TreeDistanceMatrix {
+        let mut n_leaves: usize = 0;
+        let mut max_depth = 0;
+        let mut leaf_map: HashMap<String, usize> = HashMap::new();
+
+        for child in self.traverse_children() {
+            for leaf in child.leaves.iter() {
+                leaf_map.insert(leaf.clone(), n_leaves);
+                n_leaves += 1;
+            }
+            let levels_from_root = self.get_levels_from_root(child.leaf_nodes[0]);
+            if levels_from_root > max_depth {
+                max_depth = levels_from_root;
+            }
+        }
+
+        let mut leaf_distance_matrix: Array2<f32> = Array2::zeros((n_leaves, max_depth + 1));
+        let mut identity_matrix: Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
+
+        let mut finished_leaves: Vec<usize> = Vec::new();
+        let mut accumulated_distances: Vec<f32> = Vec::new();
+        let mut internal_nodes: Vec<usize> = Vec::new();
+
+        let mut previous_level = 0;
+        let mut current_level;
+
+
+        for (c, level) in self.traverse_children().iter().enumerate() {
+            current_level = level.levels_from_root;
+
+            if previous_level < current_level {
+                for _l in current_level..previous_level {
+                    accumulated_distances.pop();
+                    internal_nodes.pop();
+                }
+            }
+
+            if (level.level_distance).is_nan() {
+                accumulated_distances.push(0.0);
+            } else {
+                accumulated_distances.push(level.level_distance);
+            }
+
+            internal_nodes.push(c);
+
+            for (i, leaf) in level.leaves.iter().enumerate() {
+                let leaf_id = leaf_map[leaf];
+                for l in 0..current_level {
+                    leaf_distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
+                    identity_matrix[[leaf_id, l]] = internal_nodes[l];
+                }
+                // Add the final accumulated leaf distance
+                leaf_distance_matrix[[leaf_id, current_level]] = leaf_distance_matrix[[leaf_id, current_level - 1]] + level.leaf_distances[i];
+                finished_leaves.push(leaf_id);
+            }
+
+            previous_level = current_level;
+            //previous_branch_number = current_branch_number;
+        }
+
+         println!("{:?}", identity_matrix);
+         println!("{:?}", leaf_distance_matrix);
+
+        let distance_matrix = TreeDistanceMatrix::new(leaf_distance_matrix, identity_matrix, leaf_map);
+
+        distance_matrix
     }
 }

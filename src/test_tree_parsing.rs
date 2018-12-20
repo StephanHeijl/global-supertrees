@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use graph_tree;
+    use graph_tree as tree;
 
     #[test]
     fn test_construct_tree_from_file_1() {
         let tree_file = String::from("((raccoon:19.19959,bear:6.80041):0.84600,((sea_lion:11.99700, seal:12.00300):7.52973,((monkey:100.85930,cat:47.14069):20.59201, weasel:18.87953):2.09460):3.87382,dog:25.46154);");
-        let parsed_tree = graph_tree::Tree::parse(tree_file);
+        let parsed_tree = tree::Tree::parse(tree_file);
 
         let expected_children = vec![
             vec![String::from("dog")],
@@ -20,7 +20,7 @@ mod tests {
 
         // Depth first check
         for (c, child) in children.iter().enumerate() {
-            assert_eq!(child, &expected_children[c]);
+            assert_eq!(child.leaves, expected_children[c]);
         }
     }
 
@@ -28,7 +28,7 @@ mod tests {
     fn test_construct_tree_from_file_2() {
         // Tree 2
         let tree_file = String::from("(Bovine:0.69395,(Gibbon:0.36079,(Orang:0.33636,(Gorilla:0.17147,(Chimp:0.19268, Human:0.11927):0.08386):0.06124):0.15057):0.54939,Mouse:1.21460):0.10;");
-        let parsed_tree = graph_tree::Tree::parse(tree_file);
+        let parsed_tree = tree::Tree::parse(tree_file);
 
         let expected_children = vec![
             vec![String::from("Bovine"), String::from("Mouse")],
@@ -41,14 +41,14 @@ mod tests {
         let children = parsed_tree.traverse_children();
         println!("{:?}", children);
         for (c, child) in children.iter().enumerate() {
-            assert_eq!(child, &expected_children[c]);
+            assert_eq!(child.leaves, expected_children[c]);
         }
     }
 
     #[test]
     fn test_construct_tree_from_file_3() {
         let tree_file = String::from("(Alpha,Beta,Gamma,Delta,,Epsilon,,,);");
-        let parsed_tree = graph_tree::Tree::parse(tree_file);
+        let parsed_tree = tree::Tree::parse(tree_file);
 
         let expected_children = vec![
             String::from("Alpha"),
@@ -65,7 +65,7 @@ mod tests {
         let children = parsed_tree.traverse_children();
         println!("{:?}", children);
         for (c, child) in children.iter().enumerate() {
-            assert_eq!(child[0], expected_children[c]);
+            assert_eq!(child.leaves[0], expected_children[c]);
         }
     }
 }
