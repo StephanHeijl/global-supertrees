@@ -18,7 +18,7 @@ pub fn merge_trees(trees: Vec<Tree>) {
     // Create a shared matrix from which every tree can get the new mean distances.
     let merged_distances = merge_distance_matrices(distance_matrices);
 
-    let mut new_trees: Vec<Tree> = tree_leafs
+    let new_trees: Vec<Tree> = tree_leafs
         .par_iter()
         .map(|t| {
             merged_distances

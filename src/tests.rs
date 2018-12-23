@@ -9,7 +9,7 @@ mod tests {
 
     #[test]
     fn test_load_tree_file() {
-        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let filename = String::from("newick_trees/1.tree");
         let tree_file = utils::load_tree_file(filename);
         //println!("{}" ,tree_file);
         assert!(tree_file.contains("("));
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_get_levels_from_root() {
-        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let filename = String::from("newick_trees/1.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
 
@@ -134,28 +134,38 @@ mod tests {
 
     #[test]
     fn test_to_distance_matrix_simple() {
-        let filename = String::from("/home/stephan/newick_trees/5.tree");
+        let filename = String::from("newick_trees/5.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
-        parsed_tree.to_distance_matrix();
+        let dm = parsed_tree.to_distance_matrix();
+        assert_eq!(dm.get_distance(String::from("Alpha"), String::from("Gamma")), Some(18.));
+        assert_eq!(dm.get_distance(String::from("Alpha"), String::from("Delta")), Some(16.));
+        assert_eq!(dm.get_distance(String::from("Delta"), String::from("Beta")), Some(30.));
+        assert_eq!(dm.get_distance(String::from("Gamma"), String::from("Beta")), Some(32.));
+        assert_eq!(dm.get_distance(String::from("Alpha"), String::from("Alpha")), Some(0.));
+        println!("{}", dm.to_csv());
     }
 
     #[test]
     fn test_to_distance_matrix_hard() {
-        let filename = String::from("/home/stephan/newick_trees/1.tree");
+        let filename = String::from("newick_trees/1.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
-        parsed_tree.to_distance_matrix();
+        let dm = parsed_tree.to_distance_matrix();
+
+        assert_eq!(dm.get_distance(String::from("raccoon"), String::from("bear")), Some(26.000002));
+        assert_eq!(dm.get_distance(String::from("raccoon"), String::from("dog")), Some(45.507133));
+        println!("{}", dm.to_csv());
     }
-//
-//    #[test]
-//    fn test_neighbour_joining() {
-//        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
-//        let parsed_tree = tree::Tree::parse(tree_string);
-//        let distance_matrix = parsed_tree.to_distance_matrix();
-//        let nj_tree = distance_matrix.neighbour_joining();
-//        assert_eq!(parsed_tree, nj_tree);
-//    }
+
+    #[test]
+    fn test_neighbour_joining() {
+        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let parsed_tree = tree::Tree::parse(tree_string);
+        let distance_matrix = parsed_tree.to_distance_matrix();
+        let nj_tree = distance_matrix.neighbour_joining();
+        assert_eq!(parsed_tree, nj_tree);
+    }
 //
 //    #[test]
 //    fn test_tree_merging() {

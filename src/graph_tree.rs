@@ -4,8 +4,10 @@ use std::f32;
 use tree_distance_matrix::*;
 use petgraph::prelude::NodeIndex;
 use petgraph::visit::Dfs;
+use petgraph::graph::node_index;
 use petgraph::{Graph, Incoming};
 use petgraph::algo::dijkstra;
+use std::process;
 
 #[derive(Debug)]
 pub struct Tree {
@@ -21,7 +23,42 @@ pub struct Level {
     pub levels_from_root: usize,
 }
 
+impl PartialEq for Tree {
+    fn eq(&self, other: &Tree) -> bool {
+        let mut leaves_self: Vec<Vec<String>> = Vec::new();
+        let mut leaves_other: Vec<Vec<String>> = Vec::new();
+
+        for level in self.traverse_children() {
+            let mut l = level.leaves.clone();
+            l.sort();
+            leaves_self.push(l);
+        }
+        for level in other.traverse_children() {
+            let mut l = level.leaves.clone();
+            l.sort();
+            leaves_other.push(l);
+        }
+
+        leaves_self.sort();
+        leaves_other.sort();
+
+        return leaves_self == leaves_other;
+    }
+}
+
+
 impl Tree {
+    pub fn get_leaves(&self) -> Vec<String> {
+        let mut leaves : Vec<String> = Vec::new();
+        for id in self.graph.node_indices() {
+            if let Some(thing) = self.graph.node_weight(id) {
+                if !thing.starts_with(">>") {
+                    leaves.push(thing.to_string());
+                }
+            }
+        }
+        leaves
+    }
 
     pub fn traverse_children(&self) -> Vec<Level> {
 
@@ -29,23 +66,36 @@ impl Tree {
         let mut cl_names : Vec<String> = Vec::new();
         let mut cl_nodes : Vec<NodeIndex<u32>> = Vec::new();
         let mut cl_dist : Vec<f32> = Vec::new();
+        let mut previous_branch_distance = f32::NAN;
 
-        let mut dfs = Dfs::new(&self.graph, self.graph.node_indices().nth(0).expect(""));
+        let mut dfs = Dfs::new(&self.graph,  node_index(0));
 
         while let Some(node) = dfs.next(&self.graph) {
             let node_name = self.graph.node_weight(node).unwrap();
             let mut node_distance = f32::NAN;
 
+            match self.graph.edges_directed(node, Incoming).nth(0) {
+                Some(edge) => { node_distance = *edge.weight(); },
+                None => { }
+            }
+
+            if node_name == "<root>" {
+                continue;
+            }
+
             if node_name.starts_with(">>") {
+                //println!("Branch node ({}) distance: {}", node_name, node_distance);
                 if cl_nodes.len() == 0 {
                     continue;
                 }
-                let levels_from_root = self.get_levels_from_root(*cl_nodes.get(0).expect("Found no nodes on current level."));
+                let levels_from_root = self.get_levels_from_root(*cl_nodes.get(0).expect(
+                    "Found no nodes on current level."
+                ));
                 let level = Level {
                     leaves : cl_names.clone(),
                     leaf_nodes : cl_nodes.clone(),
                     leaf_distances: cl_dist.clone(),
-                    level_distance: node_distance,
+                    level_distance: previous_branch_distance,
                     levels_from_root: levels_from_root,
                 };
                 children.push(level);
@@ -53,20 +103,32 @@ impl Tree {
                 cl_names.clear();
                 cl_nodes.clear();
                 cl_dist.clear();
+
+                // Record the true branch distance at the time the branch was encountered.
+                previous_branch_distance = node_distance;
             } else {
                 cl_names.push(node_name.to_string());
                 cl_nodes.push(node);
-
-                match self.graph.edges_directed(node, Incoming).nth(0) {
-                    Some(edge) => { node_distance = *edge.weight(); },
-                    None => { continue; }
-                }
-
                 cl_dist.push(node_distance);
+            }
+
+            // Add the final level if there are no more nodes in the stack.
+            if dfs.stack.len() == 0 {
+                let levels_from_root = self.get_levels_from_root(*cl_nodes.get(0).expect(
+                    "Found no nodes on current level."
+                ));
+
+                let level = Level {
+                    leaves: cl_names.clone(),
+                    leaf_nodes: cl_nodes.clone(),
+                    leaf_distances: cl_dist.clone(),
+                    level_distance: previous_branch_distance,
+                    levels_from_root: levels_from_root,
+                };
+                children.push(level);
             }
         }
 
-        children.remove(0);
         return children;
     }
 
@@ -83,7 +145,6 @@ impl Tree {
         let mut chr: char;
 
         while c < tree_string.len() {
-
             chr = tree_string.chars().nth(c).unwrap();
             c += 1;
 
@@ -159,6 +220,8 @@ impl Tree {
             graph.add_edge(parent, *branch, *dist);
         }
 
+
+
         return (graph, c)
 
     }
@@ -169,15 +232,15 @@ impl Tree {
         let parent = graph.add_node(String::from("<root>"));
         Tree::parse_tree_from_string(tree_string, &mut graph, parent);
 
-        Tree{
-            graph
-        }
+        let tree = Tree { graph };
+
+        println!("{:?}", tree.get_leaves());
+        return tree;
     }
 
     #[allow(dead_code)]
     pub fn new() -> Tree {
         let graph : Graph<String, f32> = Graph::new();
-
         Tree { graph }
     }
 
@@ -195,7 +258,7 @@ impl Tree {
             &self.graph,
             NodeIndex::new(0),
             Some(n),
-            | edge | 1
+            | _edge | 1
         );
         let sp = shortest_path[&n];
         if sp == 0 {
@@ -231,9 +294,10 @@ impl Tree {
         let mut previous_level = 0;
         let mut current_level;
 
-
         for (c, level) in self.traverse_children().iter().enumerate() {
             current_level = level.levels_from_root;
+
+            println!("{:?} ... {} -> {}", level, previous_level, current_level);
 
             if previous_level < current_level {
                 for _l in current_level..previous_level {
@@ -241,7 +305,11 @@ impl Tree {
                     internal_nodes.pop();
                 }
             }
-
+            if previous_level == current_level {
+                // Switch branches on the same level.
+                accumulated_distances.pop();
+                internal_nodes.pop();
+            }
             if (level.level_distance).is_nan() {
                 accumulated_distances.push(0.0);
             } else {
@@ -268,7 +336,9 @@ impl Tree {
          println!("{:?}", identity_matrix);
          println!("{:?}", leaf_distance_matrix);
 
-        let distance_matrix = TreeDistanceMatrix::new(leaf_distance_matrix, identity_matrix, leaf_map);
+        let distance_matrix = TreeDistanceMatrix::new(
+            leaf_distance_matrix, identity_matrix, leaf_map
+        );
 
         distance_matrix
     }

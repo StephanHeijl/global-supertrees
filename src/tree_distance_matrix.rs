@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::f32;
-use tree::*;
+use graph_tree::*;
 use utils;
 
 #[derive(Debug)]
@@ -230,6 +230,7 @@ impl TreeDistanceMatrix {
 
         let mut leaves: Vec<String> = Vec::new();
 
+        csv.push_str(",");
         for l in 0..max_key + 1 {
             match self.leaf_map_inv.get(&l) {
                 Some(name) => {
@@ -250,7 +251,7 @@ impl TreeDistanceMatrix {
             let mut v = 0;
             for val in row {
                 csv.push_str(&val.to_string());
-                if v < leaves.len() {
+                if v < leaves.len() - 1 {
                     csv.push(delim);
                 }
                 v += 1;
@@ -492,7 +493,7 @@ impl TreeDistanceMatrix {
             n_leaves,
         );
 
-        println!("-- {:?}", distance_matrix);
+        //println!("-- {:?}", distance_matrix);
 
         TreeDistanceMatrix {
             leaf_map,
