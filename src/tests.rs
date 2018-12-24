@@ -3,10 +3,8 @@ mod tests {
     use ndarray::prelude::*;
     use graph_tree as tree;
     use tree_distance_matrix;
-    //use tree_merging;
+    use tree_merging;
     use utils;
-    use std::process;
-
 
     #[test]
     fn test_load_tree_file() {
@@ -171,29 +169,37 @@ mod tests {
         println!("{}", dm.to_csv());
     }
 
-
     #[test]
     fn test_neighbour_joining() {
         let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
         let parsed_tree = tree::Tree::parse(tree_string);
         let distance_matrix = parsed_tree.to_distance_matrix();
+        println!("{}", distance_matrix.to_csv());
+
         let nj_tree = distance_matrix.neighbour_joining();
-        println!("{:?}", nj_tree.get_leaves());
         assert_eq!(parsed_tree, nj_tree);
+
+        println!("{:?}", distance_matrix);
+        println!("{:?}", nj_tree.to_distance_matrix());
     }
-//
-//    #[test]
-//    fn test_tree_merging() {
-//        let tree_string_one = String::from("(Bovine:0.69395,Lamb:0.2,Porcine:0.4,Memine:0.5,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
-//        let tree_string_two = String::from("(Bovine:0.29395,(Hylobates:0.16079,(Pongo:0.53636,(G._Gorilla:0.07147,(P._paniscus:0.09268,H._sapiens:0.41927):0.01386):0.12124):0.45057):0.34939,Rodent:2.21460);");
-//
-//        let tree_one = tree::Tree::parse(tree_string_one);
-//        let tree_two = tree::Tree::parse(tree_string_two);
-//
-//        tree_merging::merge_trees(
-//            vec!(tree_one, tree_two)
-//        );
-//    }
+
+
+    #[test]
+    fn test_tree_merging() {
+        let tree_string_one = String::from("(Bovine:0.69395,Lamb:0.2,Porcine:0.4,Memine:0.5,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let tree_string_two = String::from("(Bovine:0.29395,Deer:0.1,(Hylobates:0.16079,(Pongo:0.53636,(G._Gorilla:0.07147,(P._paniscus:0.09268,H._sapiens:0.41927):0.01386):0.12124):0.45057):0.34939,Rodent:2.21460);");
+
+        let tree_one = tree::Tree::parse(tree_string_one);
+        let tree_two = tree::Tree::parse(tree_string_two);
+
+        let merged_tree = tree_merging::merge_trees(
+            vec!(tree_one, tree_two)
+        );
+
+        println!("{}", merged_tree.to_dot());
+
+
+    }
 
     #[test]
     fn test_get_partial_tree() {
@@ -207,4 +213,13 @@ mod tests {
             String::from("Bovine"),
         ]);
     }
+
+    #[test]
+    fn test_to_dot() {
+        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let tree = tree::Tree::parse(tree_string);
+
+        println!("{}", tree.to_dot());
+    }
+
 }

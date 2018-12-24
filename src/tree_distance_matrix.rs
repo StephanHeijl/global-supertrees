@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::f32;
 
 use petgraph::graph::node_index;
-use petgraph::{Graph, Incoming};
+use petgraph::Graph;
 use petgraph::prelude::NodeIndex;
 
 use graph_tree::*;
@@ -27,8 +27,8 @@ impl TreeDistanceMatrix {
         for i in 0..n {
             for j in 0..n {
                 q_matrix[[i, j]] = ((n as f32 - 2.0) * dm[[i, j]])
-                    - dm.row(i).scalar_sum()
-                    - dm.column(j).scalar_sum();
+                    - dm.row(i).sum()
+                    - dm.column(j).sum();
             }
         }
         q_matrix
@@ -70,13 +70,31 @@ impl TreeDistanceMatrix {
 
         // f and g are the paired taxa and u is the new created node.
         let n = dm.shape()[0] as f32;
+        let sum_fk = dm.row(f).sum();
+        let sum_gk = dm.row(g).sum();
+        let dist_fg = dm[[f, g]];
 
-        let d_fu = 0.5 * dm[[f, g]]
-            + (1.0 / (2.0 * (n - 2.0))) * (dm.row(f).scalar_sum() - dm.row(g).scalar_sum());
+        let sum_block = sum_fk - sum_gk;
+        let base_block = 0.5 * dist_fg;
+        let over_block = 1.0 / (2.0 * (n - 2.0));
+
+        let mut d_fu = base_block + (over_block * sum_block);
         if d_fu.is_nan() {
             return (0.0, 0.0);
         }
-        let d_gu = dm[[f, g]] - d_fu;
+
+        let mut d_gu = dist_fg - d_fu;
+
+        // As per http://www.icp.ucl.ac.be/~opperd/private/neighbor.html
+        // Negative distances are possible in neighbour joining. You can correct for this by setting
+        // the distance to zero and adding it to the adjacent branch.
+        if d_fu < 0.0 {
+            d_gu += d_fu * -1.0;
+            d_fu = 0.0;
+        } else if d_gu < 0.0 {
+            d_fu += d_gu * -1.0;
+            d_gu = 0.0;
+        }
 
         return (d_fu, d_gu);
     }
@@ -117,7 +135,7 @@ impl TreeDistanceMatrix {
         // Add root node on index 0
         graph.add_node(String::from("<root>"));
 
-        for (i, leaf) in leaf_map_inv_vec.iter() {
+        for (_, leaf) in leaf_map_inv_vec.iter() {
             // Add nodes in the proper order, their NodeIndex will be their leaf index + 1
             graph.add_node(leaf.to_string());
         }

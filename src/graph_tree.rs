@@ -2,12 +2,14 @@ use ndarray::prelude::*;
 use std::collections::HashMap;
 use std::f32;
 use tree_distance_matrix::*;
+
 use petgraph::prelude::NodeIndex;
 use petgraph::visit::Dfs;
-use petgraph::graph::node_index;
+use petgraph::graph::{node_index, EdgeReference};
 use petgraph::{Graph, Incoming};
 use petgraph::algo::dijkstra;
-use std::process;
+use petgraph::visit::EdgeRef;
+use petgraph::dot::{Dot, Config};
 
 #[derive(Debug)]
 pub struct Tree {
@@ -21,6 +23,25 @@ pub struct Level {
     pub level_distance : f32,
     pub leaf_distances : Vec<f32>,
     pub levels_from_root: usize,
+}
+
+impl Level {
+    pub fn to_newick(&self) -> String {
+        let mut newick = String::new();
+        for (l, leaf) in self.leaves.iter().enumerate() {
+            let dist = self.leaf_distances[l];
+            if dist.is_nan() {
+                newick.push_str(leaf);
+            } else {
+                newick.push_str(&format!("{}:{}", leaf, dist));
+            }
+            if l + 1 < self.leaves.len() {
+                newick.push(',');
+            }
+
+        }
+        return newick;
+    }
 }
 
 impl PartialEq for Tree {
@@ -63,6 +84,15 @@ impl Tree {
         leaves
     }
 
+    pub fn get_parent_edge(&self, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
+        return self.graph.edges_directed(node, Incoming).nth(0);
+    }
+
+    pub fn get_parent_node(&self, node : NodeIndex<u32>) -> NodeIndex<u32> {
+        let parent_edge = self.get_parent_edge(node).expect("Node does not have a parent.");
+        parent_edge.source()
+    }
+
     pub fn traverse_children(&self) -> Vec<Level> {
 
         let mut children : Vec<Level> = Vec::new();
@@ -77,7 +107,7 @@ impl Tree {
             let node_name = self.graph.node_weight(node).unwrap();
             let mut node_distance = f32::NAN;
 
-            match self.graph.edges_directed(node, Incoming).nth(0) {
+            match self.get_parent_edge(node) {
                 Some(edge) => { node_distance = *edge.weight(); },
                 None => { }
             }
@@ -133,6 +163,20 @@ impl Tree {
         }
 
         return children;
+    }
+
+    pub fn add_sibling(&mut self, a : NodeIndex<u32>, b : String, distance : f32) {
+        let parent_node = self.get_parent_node(a);
+        self.add_child(parent_node, b, distance);
+    }
+
+    pub fn add_child(&mut self, parent : NodeIndex<u32>, child : String, distance : f32) {
+        let child_node_idx = self.add_node(child);
+        self.graph.add_edge(parent, child_node_idx, distance);
+    }
+
+    pub fn add_node(&mut self, node : String) -> NodeIndex<u32> {
+        return self.graph.add_node(node);
     }
 
     #[allow(dead_code)]
@@ -289,8 +333,8 @@ impl Tree {
         let mut leaf_distance_matrix: Array2<f32> = Array2::zeros((n_leaves, max_depth + 1));
         let mut identity_matrix: Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
 
-        println!("{:?}", leaf_distance_matrix.shape());
-        println!("{:?}", identity_matrix.shape());
+        //println!("{:?}", leaf_distance_matrix.shape());
+        //println!("{:?}", identity_matrix.shape());
 
         let mut finished_leaves: Vec<usize> = Vec::new();
         let mut accumulated_distances: Vec<f32> = Vec::new();
@@ -300,10 +344,10 @@ impl Tree {
         let mut current_level;
         let mut internal_node_count = 0;
 
-        for (c, level) in self.traverse_children().iter().enumerate() {
+        for (_c, level) in self.traverse_children().iter().enumerate() {
             current_level = level.levels_from_root;
 
-            println!("{:?} ... {} -> {}", level, previous_level, current_level);
+            //println!("{:?} ... {} -> {}", level, previous_level, current_level);
 
             if previous_level < current_level {
                 for _l in current_level..previous_level {
@@ -318,7 +362,7 @@ impl Tree {
             }
             // Compensate for large jumps,
             if (current_level as i32 - previous_level as i32) > 1 {
-                for l in previous_level..(current_level - 1) {
+                for _l in previous_level..(current_level - 1) {
                     accumulated_distances.push(0.0);
                     internal_nodes.push(internal_node_count);
                     internal_node_count += 1;
@@ -353,5 +397,10 @@ impl Tree {
         );
 
         distance_matrix
+    }
+
+    pub fn to_dot(&self) -> String {
+        let dot_string = Dot::with_config(&self.graph, &[Config::EdgeNoLabel]);
+        return format!("{:?}", dot_string);
     }
 }

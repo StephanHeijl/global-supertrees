@@ -103,28 +103,6 @@ impl Tree {
         path
     }
 
-    pub fn perform_operation_on_branch<F : FnMut(&mut Tree) >(&mut self, target_branch_idx : usize, mut current_branch_idx : usize, op : &mut F) -> Option<usize> {
-        for b in 0..self.branches.len() {
-            let mut branch = self.branches.get_mut(b).expect("Branch state invalid");
-            if current_branch_idx == target_branch_idx {
-                println!("{} = {}, executing operation :)", current_branch_idx, target_branch_idx);
-                op(branch);
-                return None;
-            }
-
-            if branch.branches.len() > 0 {
-                match branch.perform_operation_on_branch(target_branch_idx, current_branch_idx + 1, op) {
-                    Some(i) => { current_branch_idx = i; },
-                    None => { return None; }
-                }
-            }
-
-            current_branch_idx += 1;
-        }
-        return Some(current_branch_idx);
-
-    }
-
     #[allow(dead_code)]
     pub fn traverse_children(&self) -> Vec<(&Tree, &f32)> {
         let children = self.build_depth_first_path();
@@ -247,6 +225,7 @@ impl Tree {
         return Tree::parse_tree_from_string(tree_string, 0, 0).0;
     }
 
+    #[allow(dead_code)]
     pub fn add_root_levels(&mut self, depth: usize) {
         self.levels_from_root = depth;
         for mut branch in self.branches.iter_mut() {
