@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_distance_matrix_hard() {
+    fn test_to_distance_matrix_medium() {
         let filename = String::from("newick_trees/1.tree");
         let tree_file = utils::load_tree_file(filename);
         let parsed_tree = tree::Tree::parse(tree_file);
@@ -158,6 +158,19 @@ mod tests {
         assert_eq!(dm.get_distance(String::from("raccoon"), String::from("dog")), Some(45.507133));
         println!("{}", dm.to_csv());
     }
+
+    #[test]
+    fn test_to_distance_matrix_medium_nested() {
+        let filename = String::from("newick_trees/6.tree");
+        let tree_file = utils::load_tree_file(filename);
+        let parsed_tree = tree::Tree::parse(tree_file);
+        let dm = parsed_tree.to_distance_matrix();
+
+        assert_eq!(dm.get_distance(String::from("raccoon"), String::from("bear")), Some(26.000002));
+        assert_eq!(dm.get_distance(String::from("raccoon"), String::from("dog")), Some(45.507133));
+        println!("{}", dm.to_csv());
+    }
+
 
     #[test]
     fn test_neighbour_joining() {

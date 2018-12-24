@@ -257,11 +257,12 @@ impl Tree {
     pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
         let shortest_path = dijkstra(
             &self.graph,
-            NodeIndex::new(0),
+            node_index(0),
             Some(n),
             | _edge | 1
         );
         let sp = shortest_path[&n];
+        //println!("{:?}, {:?} => {}", n, self.graph.node_weight(n), sp);
         if sp == 0 {
             return 0;
         } else {
@@ -288,17 +289,21 @@ impl Tree {
         let mut leaf_distance_matrix: Array2<f32> = Array2::zeros((n_leaves, max_depth + 1));
         let mut identity_matrix: Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
 
+        println!("{:?}", leaf_distance_matrix.shape());
+        println!("{:?}", identity_matrix.shape());
+
         let mut finished_leaves: Vec<usize> = Vec::new();
         let mut accumulated_distances: Vec<f32> = Vec::new();
         let mut internal_nodes: Vec<usize> = Vec::new();
 
         let mut previous_level = 0;
         let mut current_level;
+        let mut internal_node_count = 0;
 
         for (c, level) in self.traverse_children().iter().enumerate() {
             current_level = level.levels_from_root;
 
-            //println!("{:?} ... {} -> {}", level, previous_level, current_level);
+            println!("{:?} ... {} -> {}", level, previous_level, current_level);
 
             if previous_level < current_level {
                 for _l in current_level..previous_level {
@@ -311,18 +316,28 @@ impl Tree {
                 accumulated_distances.pop();
                 internal_nodes.pop();
             }
+            // Compensate for large jumps,
+            if (current_level as i32 - previous_level as i32) > 1 {
+                for l in previous_level..(current_level - 1) {
+                    accumulated_distances.push(0.0);
+                    internal_nodes.push(internal_node_count);
+                    internal_node_count += 1;
+                }
+            }
             if (level.level_distance).is_nan() {
                 accumulated_distances.push(0.0);
             } else {
                 accumulated_distances.push(level.level_distance);
             }
 
-            internal_nodes.push(c);
+            internal_nodes.push(internal_node_count);
+            internal_node_count += 1;
 
             for (i, leaf) in level.leaves.iter().enumerate() {
                 let leaf_id = leaf_map[leaf];
                 for l in 0..current_level {
-                    leaf_distance_matrix[[leaf_id, l]] = accumulated_distances[0..l + 1].iter().sum();
+                    let sum_dist = accumulated_distances[0..l + 1].iter().sum();
+                    leaf_distance_matrix[[leaf_id, l]] = sum_dist;
                     identity_matrix[[leaf_id, l]] = internal_nodes[l];
                 }
                 // Add the final accumulated leaf distance
@@ -331,11 +346,7 @@ impl Tree {
             }
 
             previous_level = current_level;
-            //previous_branch_number = current_branch_number;
         }
-
-//         println!("{:?}", identity_matrix);
-//         println!("{:?}", leaf_distance_matrix);
 
         let distance_matrix = TreeDistanceMatrix::new(
             leaf_distance_matrix, identity_matrix, leaf_map
