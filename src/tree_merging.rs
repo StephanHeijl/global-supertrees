@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::f32;
-use tree::*;
+use graph_tree::*;
 use tree_distance_matrix::*;
 use utils;
 

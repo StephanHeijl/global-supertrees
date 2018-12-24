@@ -42,6 +42,9 @@ impl PartialEq for Tree {
         leaves_self.sort();
         leaves_other.sort();
 
+        println!("{:?}", leaves_self);
+        println!("{:?}", leaves_other);
+
         return leaves_self == leaves_other;
     }
 }
@@ -220,8 +223,6 @@ impl Tree {
             graph.add_edge(parent, *branch, *dist);
         }
 
-
-
         return (graph, c)
 
     }
@@ -297,7 +298,7 @@ impl Tree {
         for (c, level) in self.traverse_children().iter().enumerate() {
             current_level = level.levels_from_root;
 
-            println!("{:?} ... {} -> {}", level, previous_level, current_level);
+            //println!("{:?} ... {} -> {}", level, previous_level, current_level);
 
             if previous_level < current_level {
                 for _l in current_level..previous_level {
@@ -333,8 +334,8 @@ impl Tree {
             //previous_branch_number = current_branch_number;
         }
 
-         println!("{:?}", identity_matrix);
-         println!("{:?}", leaf_distance_matrix);
+//         println!("{:?}", identity_matrix);
+//         println!("{:?}", leaf_distance_matrix);
 
         let distance_matrix = TreeDistanceMatrix::new(
             leaf_distance_matrix, identity_matrix, leaf_map

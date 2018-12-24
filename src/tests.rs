@@ -3,8 +3,9 @@ mod tests {
     use ndarray::prelude::*;
     use graph_tree as tree;
     use tree_distance_matrix;
-    use tree_merging;
+    //use tree_merging;
     use utils;
+    use std::process;
 
 
     #[test]
@@ -164,6 +165,7 @@ mod tests {
         let parsed_tree = tree::Tree::parse(tree_string);
         let distance_matrix = parsed_tree.to_distance_matrix();
         let nj_tree = distance_matrix.neighbour_joining();
+        println!("{:?}", nj_tree.get_leaves());
         assert_eq!(parsed_tree, nj_tree);
     }
 //
@@ -179,17 +181,17 @@ mod tests {
 //            vec!(tree_one, tree_two)
 //        );
 //    }
-//
-//    #[test]
-//    fn test_get_partial_tree() {
-//        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
-//
-//        let tree = tree::Tree::parse(tree_string);
-//        let dm = tree.to_distance_matrix();
-//        dm.get_partial_distance_matrix(&vec![
-//            String::from("Hylobates"),
-//            String::from("Pongo"),
-//            String::from("Bovine"),
-//        ]);
-//    }
+
+    #[test]
+    fn test_get_partial_tree() {
+        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+
+        let tree = tree::Tree::parse(tree_string);
+        let dm = tree.to_distance_matrix();
+        dm.get_partial_distance_matrix(&vec![
+            String::from("Hylobates"),
+            String::from("Pongo"),
+            String::from("Bovine"),
+        ]);
+    }
 }

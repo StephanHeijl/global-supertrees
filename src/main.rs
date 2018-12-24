@@ -11,7 +11,7 @@ mod tests;
 mod tree;
 mod graph_tree;
 mod tree_distance_matrix;
-mod tree_merging;
+//mod tree_merging;
 mod utils;
 
 
