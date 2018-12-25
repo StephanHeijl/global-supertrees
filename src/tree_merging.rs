@@ -10,23 +10,23 @@ pub fn merge_trees(trees: Vec<Tree>) -> Tree {
     let distance_matrices: Vec<TreeDistanceMatrix> =
         trees.iter().map(|t| t.to_distance_matrix()).collect();
 
-    let tree_leafs: Vec<Vec<String>> = distance_matrices
-        .iter()
-        .map(|t| utils::keys_vec(&t.leaf_map))
-        .collect();
-    // Create a shared matrix from which every tree can get the new mean distances.
-    let merged_distances = merge_distance_matrices(distance_matrices);
+//    let tree_leafs: Vec<Vec<String>> = distance_matrices
+//        .iter()
+//        .map(|t| utils::keys_vec(&t.leaf_map))
+//        .collect();
+//    // Create a shared matrix from which every tree can get the new mean distances.
+//    let merged_distances = merge_distance_matrices(distance_matrices);
+//
+//    let new_trees: Vec<Tree> = tree_leafs
+//        .iter()
+//        .map(|t| {
+//            merged_distances
+//                .get_partial_distance_matrix(t)
+//                .neighbour_joining()
+//        })
+//        .collect();
 
-    let new_trees: Vec<Tree> = tree_leafs
-        .iter()
-        .map(|t| {
-            merged_distances
-                .get_partial_distance_matrix(t)
-                .neighbour_joining()
-        })
-        .collect();
-
-    sibling_merging(new_trees)
+    sibling_merging(trees)
 }
 
 fn get_tree_size(tree: &Tree) -> usize {
@@ -59,7 +59,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                 for (_bi, base_level) in base_tree.traverse_children().iter().enumerate() {
                     let base_leaf_set = utils::vec_to_set(&base_level.leaves);
 
-                    //println!("base_leaf_set: {:?}", base_leaf_set);
+                    println!("base_leaf_set: {:?}", base_leaf_set);
 
                     let overlapping_leaves : Vec<&String> = leaf_set.intersection(&base_leaf_set).collect();
                     if overlapping_leaves.len() == 0 {
@@ -69,6 +69,8 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                     if new_leaves.len() == 0 {
                         continue; // Skip if there are no new leaves.
                     }
+
+                    println!("Found new siblings: {:?}", new_leaves);
 
                     let base_leaf_node_idx = base_level.leaf_nodes[0];
 

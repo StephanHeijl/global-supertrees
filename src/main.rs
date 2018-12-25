@@ -2,13 +2,13 @@
 extern crate ndarray;
 extern crate rayon;
 extern crate petgraph;
+extern crate regex;
 
 use std::env;
 use std::time;
 
 mod test_tree_parsing;
 mod tests;
-mod tree;
 mod graph_tree;
 mod tree_distance_matrix;
 mod tree_merging;
@@ -32,7 +32,7 @@ fn main() {
     );
 
     let now = time::Instant::now();
-    let parsed_tree = tree::Tree::parse(tree_file);
+    let parsed_tree = graph_tree::Tree::parse(tree_file);
     println!(
         "Parsed tree in {}.{} seconds.",
         now.elapsed().as_secs(),

@@ -186,8 +186,8 @@ mod tests {
 
     #[test]
     fn test_tree_merging() {
-        let tree_string_one = String::from("(Bovine:0.69395,Lamb:0.2,Porcine:0.4,Memine:0.5,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
-        let tree_string_two = String::from("(Bovine:0.29395,Deer:0.1,(Hylobates:0.16079,(Pongo:0.53636,(G._Gorilla:0.07147,(P._paniscus:0.09268,H._sapiens:0.41927):0.01386):0.12124):0.45057):0.34939,Rodent:2.21460);");
+        let tree_string_one = String::from("(Bovine:0.69395,Lamb:0.2,Porcine:0.4,Memine:0.5,Zoobelflurb:0.1,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let tree_string_two = String::from("(Bovine:0.29395,Deer:0.1,(Hylobates:0.16079,Balohytes:0.15,(Pongo:0.53636,(G._Gorilla:0.07147,(P._paniscus:0.09268,H._sapiens:0.41927):0.01386):0.12124):0.45057):0.34939,Rodent:2.21460);");
 
         let tree_one = tree::Tree::parse(tree_string_one);
         let tree_two = tree::Tree::parse(tree_string_two);

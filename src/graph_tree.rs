@@ -1,6 +1,7 @@
 use ndarray::prelude::*;
 use std::collections::HashMap;
 use std::f32;
+use regex::Regex;
 use tree_distance_matrix::*;
 
 use petgraph::prelude::NodeIndex;
@@ -82,6 +83,15 @@ impl Tree {
             }
         }
         leaves
+    }
+
+    fn filter_uniprot_ids(identifiers : Vec<String>) -> Vec<String> {
+        let re = Regex::new(r"[A-Z][A-Z0-9]{5}").unwrap();
+        identifiers.iter().filter(|id| re.is_match(id)).collect()
+    }
+
+    pub fn get_uniprot_ids(&self) -> Vec<String> {
+        self.filter_uniprot(self.get_leaves())
     }
 
     pub fn get_parent_edge(&self, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
