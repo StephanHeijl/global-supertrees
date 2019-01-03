@@ -5,11 +5,14 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::f32;
 
+use regex::Regex;
+
 use petgraph::graph::node_index;
 use petgraph::Graph;
 use petgraph::prelude::NodeIndex;
 
 use graph_tree::*;
+use uniprot::*;
 use utils;
 
 #[derive(Debug)]
@@ -507,6 +510,24 @@ impl TreeDistanceMatrix {
         }
 
         return TreeDistanceMatrix::new_from_matrix_and_leaves(ndm, leaves.to_vec());
+    }
+
+    fn filter_uniprot_ids(identifiers : Vec<String>) -> Vec<String> {
+        // Official uniprot identifier regex
+        let re = Regex::new(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}").unwrap();
+        identifiers.into_iter().filter(|id| re.is_match(id)).collect()
+    }
+
+    pub fn get_uniprot_ids(&self) -> Vec<String> {
+        TreeDistanceMatrix::filter_uniprot_ids(self.leaf_map.keys().map(|k| k.to_string()).collect())
+    }
+
+    pub fn merge_organisms(&self, tax_id_map : HashMap<[u8; 10], u32>) {
+        /* Means the distances of all the organisms. */
+        let uniprot_ids = self.get_uniprot_ids();
+        let mut tax_ids = batch_id_tax_mapping(uniprot_ids, tax_id_map);
+        tax_ids.sort();
+        println!("{:?}", tax_ids);
     }
 
     pub fn new(

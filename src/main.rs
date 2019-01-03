@@ -6,6 +6,7 @@ extern crate regex;
 
 use std::env;
 use std::time;
+use std::process;
 
 mod test_tree_parsing;
 mod tests;
@@ -13,6 +14,7 @@ mod graph_tree;
 mod tree_distance_matrix;
 mod tree_merging;
 mod utils;
+mod uniprot;
 
 
 fn main() {
@@ -21,6 +23,11 @@ fn main() {
         if a == 1 {
             fname = arg;
         }
+    }
+
+    if fname.ends_with(".txt") {
+        uniprot::load_mapping_file(fname);
+        process::exit(0);
     }
 
     let now = time::Instant::now();
@@ -33,6 +40,7 @@ fn main() {
 
     let now = time::Instant::now();
     let parsed_tree = graph_tree::Tree::parse(tree_file);
+    //println!("{:?}", parsed_tree.get_leaves());
     println!(
         "Parsed tree in {}.{} seconds.",
         now.elapsed().as_secs(),

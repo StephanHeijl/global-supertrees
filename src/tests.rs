@@ -5,6 +5,7 @@ mod tests {
     use tree_distance_matrix;
     use tree_merging;
     use utils;
+    use uniprot;
 
     #[test]
     fn test_load_tree_file() {
@@ -218,8 +219,26 @@ mod tests {
     fn test_to_dot() {
         let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
         let tree = tree::Tree::parse(tree_string);
-
         println!("{}", tree.to_dot());
+    }
+
+    #[test]
+    fn test_batch_id_tax_mapping() {
+        let identifiers = vec!("Q6GZX4", "Q91G88", "Q6GZX2");
+        let identifiers = identifiers.iter().map(|s| String::from(*s)).collect();
+        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small.txt"));
+        println!("{:?}", uniprot::batch_id_tax_mapping(identifiers, tax_id_map));
+    }
+
+    #[test]
+    fn test_merge_organisms() {
+        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small_tree.txt"));
+        let filename = String::from("/home/stephan/Documents/small_tree_partial.ftree");
+        let tree_file = utils::load_tree_file(filename);
+        let parsed_tree = tree::Tree::parse(tree_file);
+        let dm = parsed_tree.to_distance_matrix();
+
+        dm.merge_organisms(tax_id_map);
     }
 
 }

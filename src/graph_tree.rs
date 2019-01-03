@@ -8,7 +8,6 @@ use petgraph::prelude::NodeIndex;
 use petgraph::visit::Dfs;
 use petgraph::graph::{node_index, EdgeReference};
 use petgraph::{Graph, Incoming};
-use petgraph::algo::dijkstra;
 use petgraph::visit::EdgeRef;
 use petgraph::dot::{Dot, Config};
 
@@ -86,12 +85,13 @@ impl Tree {
     }
 
     fn filter_uniprot_ids(identifiers : Vec<String>) -> Vec<String> {
-        let re = Regex::new(r"[A-Z][A-Z0-9]{5}").unwrap();
-        identifiers.iter().filter(|id| re.is_match(id)).collect()
+        // Official uniprot identifier regex
+        let re = Regex::new(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}").unwrap();
+        identifiers.into_iter().filter(|id| re.is_match(id)).collect()
     }
 
     pub fn get_uniprot_ids(&self) -> Vec<String> {
-        self.filter_uniprot(self.get_leaves())
+        Tree::filter_uniprot_ids(self.get_leaves())
     }
 
     pub fn get_parent_edge(&self, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
@@ -288,8 +288,6 @@ impl Tree {
         Tree::parse_tree_from_string(tree_string, &mut graph, parent);
 
         let tree = Tree { graph };
-
-        println!("{:?}", tree.get_leaves());
         return tree;
     }
 
@@ -309,19 +307,19 @@ impl Tree {
     }
 
     pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
-        let shortest_path = dijkstra(
-            &self.graph,
-            node_index(0),
-            Some(n),
-            | _edge | 1
-        );
-        let sp = shortest_path[&n];
-        //println!("{:?}, {:?} => {}", n, self.graph.node_weight(n), sp);
-        if sp == 0 {
+        let mut current_node = n;
+        let mut levels_from_root = 0;
+        while self.graph.node_weight(current_node).expect("No label for node.") != "<root>" {
+            levels_from_root += 1;
+            current_node = self.get_parent_node(current_node);
+        }
+
+        if levels_from_root == 0 {
             return 0;
         } else {
-            return sp - 1;
+            return levels_from_root - 1;
         }
+
     }
 
     pub fn to_distance_matrix(&self) -> TreeDistanceMatrix {
@@ -356,8 +354,6 @@ impl Tree {
 
         for (_c, level) in self.traverse_children().iter().enumerate() {
             current_level = level.levels_from_root;
-
-            //println!("{:?} ... {} -> {}", level, previous_level, current_level);
 
             if previous_level < current_level {
                 for _l in current_level..previous_level {
