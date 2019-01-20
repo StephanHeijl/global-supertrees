@@ -3,6 +3,7 @@ use ndarray::stack;
 use rayon::prelude::*;
 use std::cmp::min;
 use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::f32;
 
 use regex::Regex;
@@ -522,14 +523,6 @@ impl TreeDistanceMatrix {
         TreeDistanceMatrix::filter_uniprot_ids(self.leaf_map.keys().map(|k| k.to_string()).collect())
     }
 
-    pub fn merge_organisms(&self, tax_id_map : HashMap<[u8; 10], u32>) {
-        /* Means the distances of all the organisms. */
-        let uniprot_ids = self.get_uniprot_ids();
-        let mut tax_ids = batch_id_tax_mapping(uniprot_ids, tax_id_map);
-        tax_ids.sort();
-        println!("{:?}", tax_ids);
-    }
-
     pub fn new(
         leaf_distance_matrix: Array2<f32>,
         identity_matrix: Array2<usize>,
@@ -553,6 +546,30 @@ impl TreeDistanceMatrix {
             leaf_map_inv,
             distance_matrix,
         }
+    }
+
+
+
+    pub fn merge_organisms(&self, tax_id_map : BTreeMap<[u8; 10], u32>) {
+        /* Means the distances of all the organisms. */
+        let uniprot_ids = self.get_uniprot_ids();
+        dbg!(&uniprot_ids);
+
+        let mut tax_ids = batch_id_tax_mapping(uniprot_ids, tax_id_map);
+        let all_tax_ids = tax_ids.clone();
+
+        tax_ids.sort();
+        tax_ids.dedup(); // Deduplicate
+
+        dbg!(tax_ids);
+        dbg!(all_tax_ids);
+
+
+        // Allocate a new matrix with the new organisms required
+        // Sort the old matrix so that all organisms are contiguous
+        // Slice the rows and mean them, storing them in the new matrix.
+        // Flip the new matrix and do the exact same thing again.
+
     }
 
     pub fn new_from_matrix_and_leaves(

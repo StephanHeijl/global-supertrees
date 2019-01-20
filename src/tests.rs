@@ -1,5 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use std::thread::sleep;
+    use std::time::Duration;
+
+
     use ndarray::prelude::*;
     use graph_tree as tree;
     use tree_distance_matrix;
@@ -232,11 +236,16 @@ mod tests {
 
     #[test]
     fn test_merge_organisms() {
-        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small_tree.txt"));
-        let filename = String::from("/home/stephan/Documents/small_tree_partial.ftree");
-        let tree_file = utils::load_tree_file(filename);
-        let parsed_tree = tree::Tree::parse(tree_file);
-        let dm = parsed_tree.to_distance_matrix();
+
+        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small.txt"));
+        let leaves =  vec!("Q197F5", "Q197F7", "Q197F8", "Q6GZW9", "Q6GZX0", "Q6GZX1", "Q6GZX2", "Q6GZX3", "Q6GZX4", "Q91G88");
+        let leaves: Vec<String> = leaves.iter().map(|x| x.to_string()).collect();
+        let distance_matrix = Array2::ones((leaves.len(), leaves.len()));
+
+        let mut dm = tree_distance_matrix::TreeDistanceMatrix::new_from_matrix_and_leaves(
+            distance_matrix,
+            leaves
+        );
 
         dm.merge_organisms(tax_id_map);
     }
