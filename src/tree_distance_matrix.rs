@@ -413,7 +413,7 @@ impl TreeDistanceMatrix {
         /* Generates a full distance matrix */
 
         //let mut distance_matrices : Vec<Array2<f32>> = Vec::new();
-        let max_size = 2048 as f32;
+        let max_size = 1024 as f32;
         let parts = ((n_leaves as f32) / max_size).ceil() as usize;
 
         let starts: Vec<usize> = (0..parts.pow(2)).collect();
@@ -532,7 +532,7 @@ impl TreeDistanceMatrix {
 
         let mut leaf_map_inv: HashMap<usize, String> = HashMap::new();
         for (key, value) in leaf_map.iter() {
-            leaf_map_inv.insert(*value, key.to_string());
+             leaf_map_inv.insert(*value, key.to_string());
         }
 
         let distance_matrix = TreeDistanceMatrix::generate_full_distance_matrix(
@@ -548,9 +548,7 @@ impl TreeDistanceMatrix {
         }
     }
 
-
-
-    pub fn merge_organisms(&self, tax_id_map : BTreeMap<[u8; 10], u32>) {
+    pub fn merge_organisms(&self, tax_id_map : &BTreeMap<[u8; 10], u32>) -> TreeDistanceMatrix {
         /* Means the distances of all the organisms. */
         let uniprot_ids = self.get_uniprot_ids();
         dbg!(&uniprot_ids);
@@ -558,17 +556,39 @@ impl TreeDistanceMatrix {
         let mut tax_ids = batch_id_tax_mapping(uniprot_ids, tax_id_map);
         let all_tax_ids = tax_ids.clone();
 
-        tax_ids.sort();
+        tax_ids.sort_unstable();
         tax_ids.dedup(); // Deduplicate
-
-        dbg!(tax_ids);
-        dbg!(all_tax_ids);
 
 
         // Allocate a new matrix with the new organisms required
-        // Sort the old matrix so that all organisms are contiguous
-        // Slice the rows and mean them, storing them in the new matrix.
-        // Flip the new matrix and do the exact same thing again.
+        let mut col_mat : Array2<f32> = Array2::zeros((tax_ids.len(), all_tax_ids.len()));
+        let mut final_mat : Array2<f32> = Array2::zeros((tax_ids.len(), tax_ids.len()));
+
+        let enum_tax_ids : Vec<(usize, u32)>= tax_ids.into_iter().enumerate().collect();
+
+
+        // Mean all the rows in the distance matrix
+        for (i, tax_id) in &enum_tax_ids {
+            let idx = utils::get_indices_vec(&all_tax_ids, *tax_id);
+            let row = self.distance_matrix.select(
+                Axis(0),
+                idx.as_slice()
+            ).mean_axis(Axis(0));
+
+            col_mat.slice_mut(s![*i, ..]).assign(&row);
+        }
+        
+        // Mean all the columns in the distance matrix.
+        for (i, tax_id) in &enum_tax_ids {
+            let idx = utils::get_indices_vec(&all_tax_ids, *tax_id);
+            let row = col_mat.select(Axis(1), idx.as_slice()).mean_axis(Axis(1));
+            final_mat.slice_mut(s![*i, ..]).assign(&row);
+        }
+
+        return TreeDistanceMatrix::new_from_matrix_and_leaves(
+            final_mat,
+            enum_tax_ids.iter().map(| i | i.1.to_string()).collect()
+        );
 
     }
 

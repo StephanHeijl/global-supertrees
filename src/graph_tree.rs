@@ -63,9 +63,6 @@ impl PartialEq for Tree {
         leaves_self.sort();
         leaves_other.sort();
 
-        println!("{:?}", leaves_self);
-        println!("{:?}", leaves_other);
-
         return leaves_self == leaves_other;
     }
 }
@@ -340,9 +337,6 @@ impl Tree {
 
         let mut leaf_distance_matrix: Array2<f32> = Array2::zeros((n_leaves, max_depth + 1));
         let mut identity_matrix: Array2<usize> = Array2::zeros((n_leaves, max_depth + 1));
-
-        //println!("{:?}", leaf_distance_matrix.shape());
-        //println!("{:?}", identity_matrix.shape());
 
         let mut finished_leaves: Vec<usize> = Vec::new();
         let mut accumulated_distances: Vec<f32> = Vec::new();

@@ -1,8 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::thread::sleep;
-    use std::time::Duration;
-
 
     use ndarray::prelude::*;
     use graph_tree as tree;
@@ -230,24 +227,26 @@ mod tests {
     fn test_batch_id_tax_mapping() {
         let identifiers = vec!("Q6GZX4", "Q91G88", "Q6GZX2");
         let identifiers = identifiers.iter().map(|s| String::from(*s)).collect();
-        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small.txt"));
-        println!("{:?}", uniprot::batch_id_tax_mapping(identifiers, tax_id_map));
+        let tax_id_map = uniprot::load_mapping_file(&String::from("/home/stephan/Downloads/taxids_small.txt"));
+        println!("{:?}", uniprot::batch_id_tax_mapping(identifiers, &tax_id_map));
     }
 
     #[test]
     fn test_merge_organisms() {
 
-        let tax_id_map = uniprot::load_mapping_file(String::from("/home/stephan/Downloads/taxids_small.txt"));
+        let tax_id_map = uniprot::load_mapping_file(&String::from("/home/stephan/Downloads/taxids_small.txt"));
         let leaves =  vec!("Q197F5", "Q197F7", "Q197F8", "Q6GZW9", "Q6GZX0", "Q6GZX1", "Q6GZX2", "Q6GZX3", "Q6GZX4", "Q91G88");
         let leaves: Vec<String> = leaves.iter().map(|x| x.to_string()).collect();
         let distance_matrix = Array2::ones((leaves.len(), leaves.len()));
 
-        let mut dm = tree_distance_matrix::TreeDistanceMatrix::new_from_matrix_and_leaves(
+        let dm = tree_distance_matrix::TreeDistanceMatrix::new_from_matrix_and_leaves(
             distance_matrix,
             leaves
         );
 
-        dm.merge_organisms(tax_id_map);
+        let new_dm = dm.merge_organisms(&tax_id_map);
+        assert!(new_dm.shape()[0] == 3);
+        assert!(new_dm.shape()[1] == 3);
     }
 
 }

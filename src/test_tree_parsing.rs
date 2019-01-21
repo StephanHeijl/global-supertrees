@@ -20,7 +20,7 @@ mod tests {
         // Depth first check
         for (c, child) in children.iter().enumerate() {
             println!("{:?}", child);
-            //assert_eq!(child.leaves, expected_children[c]);
+            assert_eq!(child.leaves, expected_children[c]);
         }
     }
 

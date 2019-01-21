@@ -1,7 +1,14 @@
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+
+use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
+
+use bincode::{serialize, deserialize};
+
 
 pub fn load_tree_file(filename: String) -> String {
     let mut f = File::open(filename).expect("file not found");
@@ -14,12 +21,14 @@ pub fn load_tree_file(filename: String) -> String {
     String::from(contents.trim())
 }
 
+#[allow(dead_code)]
 pub fn keys_vec<T: std::cmp::Eq + std::hash::Hash + std::clone::Clone, V>(
     hm: &HashMap<T, V>,
 ) -> Vec<T> {
     return hm.keys().cloned().collect();
 }
 
+#[allow(dead_code)]
 pub fn vec_to_set<T: std::cmp::Eq + std::hash::Hash + std::clone::Clone>(
     vector: &Vec<T>,
 ) -> HashSet<T> {
@@ -28,4 +37,34 @@ pub fn vec_to_set<T: std::cmp::Eq + std::hash::Hash + std::clone::Clone>(
         set.insert(element.clone());
     }
     return set;
+}
+
+#[allow(dead_code)]
+pub fn argsort<T: std::cmp::PartialOrd + std::clone::Clone>(sort_vec : &Vec<T>) -> Vec<usize> {
+    let mut enum_vec = sort_vec.iter().enumerate().collect::<Vec<(usize, &T)>>();
+    enum_vec.sort_by(|a, &b| a.1.partial_cmp(b.1).unwrap());
+    return enum_vec.iter().map(|x| x.0).collect::<Vec<usize>>();
+}
+
+pub fn get_indices_vec<T: std::cmp::Eq + std::clone::Clone>(vector : &Vec<T>, value : T ) -> Vec<usize> {
+    vector.iter().enumerate().filter(| e | *e.1 == value).map(| e | e.0).collect::<Vec<usize>>()
+}
+
+pub fn cache_mapping(mapping : &BTreeMap<[u8; 10], u32>, path : &String) -> Result<(), Box<Error>> {
+    let serialized = serialize(mapping).unwrap();
+    let mut file = File::create(&path)?;
+    file.write_all(&serialized)?;
+    Ok(())
+}
+
+pub fn load_cache_mapping(path : &String) -> Result<BTreeMap<[u8; 10], u32>, Box<Error>> {
+    let mut file = File::open(path)?;
+    let mut contents : Vec<u8> = Vec::new();
+    file.read_to_end(&mut contents)?;
+    let data: BTreeMap<[u8; 10], u32> = deserialize(&contents)?;
+    return Ok(data);
+}
+
+pub fn get_cache_mapping_name(original_path : &String) -> String {
+    return format!("cache/{}.bin", Path::new(original_path).file_name().unwrap().to_str().unwrap())
 }
