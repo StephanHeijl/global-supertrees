@@ -2,6 +2,8 @@
 name = "global-supertrees"
 version = "0.1.0"
 authors = ["Stephan Heijl <sheijl@bio-prodict.nl>"]
+license = "Attribution-NonCommercial-ShareAlike 4.0 International"
+description = "A package containing code for generating global supertrees from protein alignment trees."
 
 [dependencies]
 ndarray = { version = "0.12.1" }
