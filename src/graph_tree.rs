@@ -11,11 +11,15 @@ use petgraph::{Graph, Incoming};
 use petgraph::visit::EdgeRef;
 use petgraph::dot::{Dot, Config};
 
+/// A tree structure, based on the pet-graph Graph structure. Using this ensures that there are no
+/// loops in the graph and that a tree-like structure is guaranteed.
 #[derive(Debug)]
 pub struct Tree {
     pub graph : Graph<String, f32>,
 }
 
+/// A single level on a tree. Contains leaves with distances and a notion of distance from the root
+/// of the tree.
 #[derive(Debug)]
 pub struct Level {
     pub leaves : Vec<String>,
@@ -67,8 +71,9 @@ impl PartialEq for Tree {
     }
 }
 
-
+/// Functions that relate to pure trees.
 impl Tree {
+    /// Returns every leaf in the tree on every level.
     pub fn get_leaves(&self) -> Vec<String> {
         let mut leaves : Vec<String> = Vec::new();
         for id in self.graph.node_indices() {
@@ -87,19 +92,23 @@ impl Tree {
         identifiers.into_iter().filter(|id| re.is_match(id)).collect()
     }
 
+    /// Returns the leaves in the tree that conform to the Uniprot identifier standard.
     pub fn get_uniprot_ids(&self) -> Vec<String> {
         Tree::filter_uniprot_ids(self.get_leaves())
     }
 
+    /// Returns the edge that connects this node to its parent.
     pub fn get_parent_edge(&self, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
         return self.graph.edges_directed(node, Incoming).nth(0);
     }
 
+    /// Returns the node above this node in the tree structure. (A node that is closer to the root.)
     pub fn get_parent_node(&self, node : NodeIndex<u32>) -> NodeIndex<u32> {
         let parent_edge = self.get_parent_edge(node).expect("Node does not have a parent.");
         parent_edge.source()
     }
 
+    /// Returns a vector of Levels in a depth-first fashion.
     pub fn traverse_children(&self) -> Vec<Level> {
 
         let mut children : Vec<Level> = Vec::new();
@@ -172,16 +181,21 @@ impl Tree {
         return children;
     }
 
+    /// Adds a node (b) as a sibling of another node (a). They will share a parent node. Distance is
+    /// calculated from the parent, not from the sibling.
     pub fn add_sibling(&mut self, a : NodeIndex<u32>, b : String, distance : f32) {
         let parent_node = self.get_parent_node(a);
         self.add_child(parent_node, b, distance);
     }
 
+    /// Adds a child node below another node.
     pub fn add_child(&mut self, parent : NodeIndex<u32>, child : String, distance : f32) {
         let child_node_idx = self.add_node(child);
         self.graph.add_edge(parent, child_node_idx, distance);
     }
 
+
+    /// Adds a node to the graph.
     pub fn add_node(&mut self, node : String) -> NodeIndex<u32> {
         return self.graph.add_node(node);
     }
@@ -278,6 +292,7 @@ impl Tree {
 
     }
 
+    /// Takes a newick tree description string and parses it into a Tree instance.
     #[allow(dead_code)]
     pub fn parse(tree_string: String) -> Tree {
         let mut graph : Graph<String, f32> = Graph::<String, f32>::new();
@@ -288,12 +303,14 @@ impl Tree {
         return tree;
     }
 
+    /// Returns a new, empty Tree.
     #[allow(dead_code)]
     pub fn new() -> Tree {
         let graph : Graph<String, f32> = Graph::new();
         Tree { graph }
     }
 
+    /// Finds the index of a node by its name.
     pub fn find_node_idx(&self, name : &String) -> Option<NodeIndex<u32>>{
         for n in self.graph.node_indices() {
             if name == self.graph.node_weight(n).expect("Graph is inconsistent.") {
@@ -303,6 +320,7 @@ impl Tree {
         return None;
     }
 
+    /// Finds the number of levels a node is removed from the root node.
     pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
         let mut current_node = n;
         let mut levels_from_root = 0;
@@ -319,6 +337,7 @@ impl Tree {
 
     }
 
+    /// Converts this Tree into a distance matrix and returns the resulting TreeDistanceMatrix object.
     pub fn to_distance_matrix(&self) -> TreeDistanceMatrix {
         let mut n_leaves: usize = 0;
         let mut max_depth = 0;
@@ -399,6 +418,7 @@ impl Tree {
         distance_matrix
     }
 
+    /// Converts the tree into a dot string that can be visualized with graph-viz.
     pub fn to_dot(&self) -> String {
         let dot_string = Dot::with_config(&self.graph, &[Config::EdgeNoLabel]);
         return format!("{:?}", dot_string);

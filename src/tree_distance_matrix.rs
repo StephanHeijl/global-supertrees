@@ -1,3 +1,4 @@
+//! Tree Distance Matrix Module
 use ndarray::prelude::*;
 use ndarray::stack;
 use rayon::prelude::*;
@@ -23,7 +24,10 @@ pub struct TreeDistanceMatrix {
     pub distance_matrix: Array2<f32>,
 }
 
+/// Tree distance matrix processing implementation
 impl TreeDistanceMatrix {
+
+    /// Calculates a Q matrix based on a distance matrix for the neighbour joining algorithm.
     pub fn calculate_q_matrix(dm: &Array2<f32>) -> Array2<f32> {
         let mut q_matrix: Array2<f32> = Array2::zeros(dm.raw_dim());
         let n = dm.shape()[0]; // Number of taxa
@@ -38,8 +42,9 @@ impl TreeDistanceMatrix {
         q_matrix
     }
 
+    /// Calculates a pair distance matrix based on a Qmatrix for the neighbour joining algorithm.
+    /// Results in a new distance matrix with the new pair as a single node.
     pub fn calculate_pair_distance_matrix(i: usize, j: usize, dm: &Array2<f32>) -> Array2<f32> {
-        // Create new distance matrix with the new pair as a single node.
         let mut new_distances: Array2<f32> = Array2::zeros((dm.shape()[0] - 1, dm.shape()[1] - 1));
         // New indexes
         let mut x_n = 0;
@@ -69,9 +74,8 @@ impl TreeDistanceMatrix {
         return new_distances;
     }
 
+    /// Finds the leaf distances for the pair inside the Tree node.
     pub fn calculate_new_leaf_distances(f: usize, g: usize, dm: &Array2<f32>) -> (f32, f32) {
-        /* Finds the leaf distances for the pair inside the Tree node. */
-
         // f and g are the paired taxa and u is the new created node.
         let n = dm.shape()[0] as f32;
         let sum_fk = dm.row(f).sum();
@@ -103,8 +107,9 @@ impl TreeDistanceMatrix {
         return (d_fu, d_gu);
     }
 
+    /// Returns the lowest index in the matrix where i != j
     pub fn find_min_matrix_ne(matrix: Array2<f32>) -> [usize; 2] {
-        /* Returns the lowest index in the matrix where i != j */
+
         let mut lowest: f32 = f32::MAX;
         let mut idx = [0, 0];
         let mut v: f32;
@@ -122,6 +127,8 @@ impl TreeDistanceMatrix {
         return idx;
     }
 
+
+    /// Performs the neighbour joining algorithm on this distance matrix to create a tree.
     pub fn neighbour_joining(&self) -> Tree {
         let mut distance_matrix = self.distance_matrix.clone();
         let mut leaf_map_inv_vec: Vec<(usize, String)> = self
@@ -228,11 +235,13 @@ impl TreeDistanceMatrix {
         Tree { graph }
     }
 
+    /// Returns the distance between two leaves.
     #[allow(dead_code)]
     pub fn get_distance(&self, leaf_one: String, leaf_two: String) -> Option<f32> {
         return self.get_distance_ref(&leaf_one, &leaf_two);
     }
 
+    /// Returns the distance between two leaves based on references.
     #[allow(dead_code)]
     pub fn get_distance_ref(&self, leaf_one: &String, leaf_two: &String) -> Option<f32> {
         let l1: Option<&usize> = self.leaf_map.get(leaf_one);
@@ -254,6 +263,7 @@ impl TreeDistanceMatrix {
         return Some(self.distance_matrix[[x, y]]);
     }
 
+    /// Converts the distance matrix to a CSV string.
     #[allow(dead_code)]
     pub fn to_csv(&self) -> String {
         let mut csv = String::from("");
@@ -299,15 +309,17 @@ impl TreeDistanceMatrix {
         return csv;
     }
 
+    /// Gets the shape of the distance matrix.
     #[allow(dead_code)]
     pub fn shape(&self) -> &[usize] {
         return self.distance_matrix.shape();
     }
 
+
+    /// Returns the index of the first zero in a 1D ArrayView from position 1.
+    /// Returns 0 if no zero has been found.
     #[allow(dead_code)]
     pub fn find_first_zero(identity_row: ArrayView1<usize>) -> usize {
-        /* Returns the index of the first zero in a 1D ArrayView from position 1.
-        Returns 0 if no zero has been found. */
         let mut i = 0;
         for n in identity_row.iter() {
             if i == 0 {
@@ -322,22 +334,22 @@ impl TreeDistanceMatrix {
         return 0;
     }
 
+    /// Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2).
     fn find_final_parent(l1: usize, l2: usize, identity_matrix: &Array2<usize>) -> (usize, usize) {
-        /* Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2). */
         let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
         let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
 
         (p1, p2)
     }
 
+    ///  Find the first common ancestor of two leaves.  If they do not share any explicit ancestors,
+    ///  the first common ancestor becomes the root of the tree (0). If the leaves are on the same (sub)tree,
+    ///  their shared subtree is returned. The ancestor trees are returned as a number representing the subtree id.
     pub fn find_first_common_ancestor(
         l1: usize,
         l2: usize,
         identity_matrix: &Array2<usize>,
     ) -> usize {
-        /* Find the first common ancestor of two leaves.  If they do not share any explicit ancestors,
-        the first common ancestor becomes the root of the tree (0). If the leaves are on the same (sub)tree,
-        their shared subtree is returned. The ancestor trees are returned as a number representing the subtree id. */
 
         let id_row_1 = identity_matrix.slice(s![l1, ..]);
         let id_row_2 = identity_matrix.slice(s![l2, ..]);
@@ -354,6 +366,7 @@ impl TreeDistanceMatrix {
         return 0;
     }
 
+    /// Generates a part of a distance matrix for use with multicore processing.
     #[cfg(not(feature = "singlecore"))]
     fn generate_partial_distance_matrix(
         leaf_distance_matrix: &Array2<f32>,
@@ -404,6 +417,7 @@ impl TreeDistanceMatrix {
         distance_matrix
     }
 
+    /// Generates a full distance matrix in multiprocessing mode with rayon.
     #[cfg(not(feature = "singlecore"))]
     fn generate_full_distance_matrix(
         leaf_distance_matrix: Array2<f32>,
@@ -450,6 +464,7 @@ impl TreeDistanceMatrix {
         distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned()
     }
 
+    /// Generates a full distance matrix in singlecore mode.
     #[cfg(feature = "singlecore")]
     fn generate_full_distance_matrix(
         leaf_distance_matrix: Array2<f32>,
@@ -486,6 +501,7 @@ impl TreeDistanceMatrix {
         distance_matrix
     }
 
+    /// Returns a part of the distance matrix including only the leaves specified.
     pub fn get_partial_distance_matrix(&self, leaves: &Vec<String>) -> TreeDistanceMatrix {
         let mut leaf_map: HashMap<String, usize> = HashMap::new();
         let mut leaf_map_inv: HashMap<usize, String> = HashMap::new();
@@ -519,10 +535,25 @@ impl TreeDistanceMatrix {
         identifiers.into_iter().filter(|id| re.is_match(id)).collect()
     }
 
+    fn uniprot_idx(identifiers : Vec<String>) -> Vec<usize> {
+        // Official uniprot identifier regex
+        let re = Regex::new(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}").unwrap();
+        identifiers.iter().enumerate().filter(
+            |id| re.is_match(id.1)
+        ).map(| id | id.0).collect()
+    }
+
+    /// Returns the uniprot identifiers in this distance matrix.
     pub fn get_uniprot_ids(&self) -> Vec<String> {
         TreeDistanceMatrix::filter_uniprot_ids(self.leaf_map.keys().map(|k| k.to_string()).collect())
     }
 
+    /// Returns the indices of the uniprot identifiers in this distance matrix.
+    pub fn get_uniprot_idx(&self) -> Vec<usize> {
+        TreeDistanceMatrix::uniprot_idx(self.leaf_map.keys().map(|k| k.to_string()).collect())
+    }
+
+    /// Creates a new distance matrix instance based on parts from the Tree module.
     pub fn new(
         leaf_distance_matrix: Array2<f32>,
         identity_matrix: Array2<usize>,
@@ -548,10 +579,14 @@ impl TreeDistanceMatrix {
         }
     }
 
+    /// Performs merging of organisms based on uniprot IDs.
     pub fn merge_organisms(&self, tax_id_map : &BTreeMap<[u8; 10], u32>) -> TreeDistanceMatrix {
         /* Means the distances of all the organisms. */
         let uniprot_ids = self.get_uniprot_ids();
-        dbg!(&uniprot_ids);
+        let uniprot_idx = self.get_uniprot_idx();
+
+        let input_matrix = self.distance_matrix.select(Axis(0), uniprot_idx.as_slice());
+        let input_matrix = input_matrix.select(Axis(1), uniprot_idx.as_slice());
 
         let mut tax_ids = batch_id_tax_mapping(uniprot_ids, tax_id_map);
         let all_tax_ids = tax_ids.clone();
@@ -559,18 +594,16 @@ impl TreeDistanceMatrix {
         tax_ids.sort_unstable();
         tax_ids.dedup(); // Deduplicate
 
-
         // Allocate a new matrix with the new organisms required
         let mut col_mat : Array2<f32> = Array2::zeros((tax_ids.len(), all_tax_ids.len()));
         let mut final_mat : Array2<f32> = Array2::zeros((tax_ids.len(), tax_ids.len()));
 
         let enum_tax_ids : Vec<(usize, u32)>= tax_ids.into_iter().enumerate().collect();
 
-
         // Mean all the rows in the distance matrix
         for (i, tax_id) in &enum_tax_ids {
             let idx = utils::get_indices_vec(&all_tax_ids, *tax_id);
-            let row = self.distance_matrix.select(
+            let row = input_matrix.select(
                 Axis(0),
                 idx.as_slice()
             ).mean_axis(Axis(0));
@@ -592,6 +625,7 @@ impl TreeDistanceMatrix {
 
     }
 
+    /// Creates a new TreeDistanceMatrix instance based only on a distance matrix and a list of leaves.
     pub fn new_from_matrix_and_leaves(
         distance_matrix: Array2<f32>,
         leaves: Vec<String>,

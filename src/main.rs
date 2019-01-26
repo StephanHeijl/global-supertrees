@@ -15,14 +15,14 @@ use std::collections::BTreeMap;
 
 mod test_tree_parsing;
 mod tests;
-mod graph_tree;
-mod tree_distance_matrix;
-mod tree_merging;
-mod utils;
-mod uniprot;
+pub mod graph_tree;
+pub mod tree_distance_matrix;
+pub mod tree_merging;
+pub mod utils;
+pub mod uniprot;
 
 
-fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
+pub fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
     let now = time::Instant::now();
     let tree_file = utils::load_tree_file(String::from(fname));
     println!(
@@ -60,6 +60,7 @@ fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
 
 
 fn main() {
+
     let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
 
     let mut trees : Vec<String> = Vec::new();
@@ -94,7 +95,7 @@ fn main() {
         ).collect();
     }
 
-    dbg!(distance_matrices.len());
+    let trees : Vec<graph_tree::Tree> = distance_matrices.par_iter().map(| dm | dm.neighbour_joining()).collect();
 
 
 }
