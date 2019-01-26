@@ -2,7 +2,7 @@
 name = "global-supertrees"
 version = "0.1.0"
 authors = ["Stephan Heijl <sheijl@bio-prodict.nl>"]
-license = "Attribution-NonCommercial-ShareAlike 4.0 International"
+license = " CC-BY-NC-SA-4.0"
 description = "A package containing code for generating global supertrees from protein alignment trees."
 
 [dependencies]
