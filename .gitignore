@@ -3,4 +3,7 @@
 **/*.rs.bk
 .idea
 *.out.*
-
+/build
+/dist
+*.egg-info
+global_supertrees/
