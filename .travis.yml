@@ -2,6 +2,8 @@ language: rust
 rust:
   - stable
   - nightly
+before_install:
+  - sudo apt-get install python3.6
 matrix:
   allow_failures:
     - rust: stable
