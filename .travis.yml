@@ -1,14 +1,8 @@
 language: rust
+dist: bionic
 rust:
   - stable
   - nightly
-addons:
-  apt:
-    sources:
-      - deadsnakes
-    packages:
-      - python3.6
-      - python3.6-dev
 matrix:
   allow_failures:
     - rust: stable
