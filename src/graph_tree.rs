@@ -213,7 +213,7 @@ impl Tree {
         let mut chr: char;
 
         while c < tree_string.len() {
-            chr = tree_string.chars().nth(c).unwrap();
+            chr = tree_string.chars().nth(c).expect("Could not read cth character.");
             c += 1;
 
             if chr == '(' {

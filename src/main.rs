@@ -97,5 +97,5 @@ fn main() {
 
     let trees : Vec<graph_tree::Tree> = distance_matrices.par_iter().map(| dm | dm.neighbour_joining()).collect();
 
-
+    tree_merging::merge_trees(trees);
 }

@@ -130,6 +130,7 @@ impl TreeDistanceMatrix {
 
     /// Performs the neighbour joining algorithm on this distance matrix to create a tree.
     pub fn neighbour_joining(&self) -> Tree {
+        println!("Start neighbour joining");
         let mut distance_matrix = self.distance_matrix.clone();
         let mut leaf_map_inv_vec: Vec<(usize, String)> = self
             .leaf_map_inv
@@ -153,6 +154,7 @@ impl TreeDistanceMatrix {
         let mut n_iters = 1;
 
         while distance_matrix.shape()[0] > 1 {
+            println!("{}", n_iters);
             // Calculate the Q matrix
             let q_matrix = TreeDistanceMatrix::calculate_q_matrix(&distance_matrix);
             // Find the pair of leaves that have the lowest value in the q_matrix
@@ -179,23 +181,22 @@ impl TreeDistanceMatrix {
             let mut rem_leaves: Vec<usize> = Vec::new();
 
             // Check if the first node is already a branch
-
             if branches.contains_key(&lowest_pair[0]) {
-                children.push(branches.remove(&lowest_pair[0]).unwrap());
+                children.push(branches.remove(&lowest_pair[0]).expect("Branch with first lowest pair ID does not exist."));
                 child_distances.push(pair_leaf_distances.0);
             } else {
-                rem_leaves.push(lowest_pair[0]);
-                children.push(node_index(leaf_map_inv_vec.get(lowest_pair[0]).unwrap().0 + 1));
+                rem_leaves.push(lowest_pair[0]); 
+                children.push(node_index(leaf_map_inv_vec.get(lowest_pair[0]).expect("Node with first lowest pair ID does not exist.").0 + 1));
                 child_distances.push(pair_leaf_distances.0);
             }
 
             // Check if the second node is already a tree
             if branches.contains_key(&lowest_pair[1]) {
-                children.push(branches.remove(&lowest_pair[1]).unwrap());
+                children.push(branches.remove(&lowest_pair[1]).expect("Branch with second lowest pair ID does not exist."));
                 child_distances.push(pair_leaf_distances.1);
             } else {
                 rem_leaves.push(lowest_pair[1]);
-                children.push(node_index(leaf_map_inv_vec.get(lowest_pair[1]).unwrap().0 + 1));
+                children.push(node_index(leaf_map_inv_vec.get(lowest_pair[1]).expect("Node with second lowest pair ID does not exist.").0 + 1));
                 child_distances.push(pair_leaf_distances.1);
             }
 
@@ -219,7 +220,7 @@ impl TreeDistanceMatrix {
             // Get the tree keys without borrowing them.
             let branch_keys: Vec<usize> = branches.keys().map(|x| *x).collect();
             for idx in branch_keys {
-                branches_new.insert(idx - 2, branches.remove(&idx).unwrap());
+                branches_new.insert(idx - 2, branches.remove(&idx).expect("Could not move branch"));
             }
             branches = branches_new;
 
@@ -454,13 +455,13 @@ impl TreeDistanceMatrix {
                     .iter()
                     .map(|dm| dm.view())
                     .collect();
-            rows.push(stack(Axis(1), &row).unwrap());
+            rows.push(stack(Axis(1), &row).expect("Stacking on axis 1 failed."));
         }
 
         let row_views: Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, ndarray::Dim<[usize; 2]>>> =
             rows.iter().map(|row| row.view()).collect();
 
-        let distance_matrix = stack(Axis(0), &row_views).unwrap();
+        let distance_matrix = stack(Axis(0), &row_views).expect("Stacking on axis 0 failed.");
         distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned()
     }
 
