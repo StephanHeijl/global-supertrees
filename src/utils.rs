@@ -6,8 +6,11 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::time;
 
 use bincode::{serialize, deserialize};
+use graph_tree;
+use tree_distance_matrix::TreeDistanceMatrix;
 
 
 pub fn load_tree_file(filename: String) -> String {
@@ -68,4 +71,40 @@ pub fn load_cache_mapping(path : &String) -> Result<BTreeMap<[u8; 10], u32>, Box
 
 pub fn get_cache_mapping_name(original_path : &String) -> String {
     return format!("cache/{}.bin", Path::new(original_path).file_name().unwrap().to_str().unwrap())
+}
+
+pub fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
+    let now = time::Instant::now();
+    let tree_file = load_tree_file(String::from(fname));
+    println!(
+        "Loaded tree in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
+
+    let now = time::Instant::now();
+    let parsed_tree = graph_tree::Tree::parse(tree_file);
+    println!(
+        "Parsed tree in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
+
+    let now = time::Instant::now();
+    let _children = parsed_tree.traverse_children();
+    println!(
+        "Built tree traversal map in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
+
+    let now = time::Instant::now();
+    let distance_matrix = parsed_tree.to_distance_matrix();
+    println!(
+        "Built distance_matrix in {}.{} seconds.",
+        now.elapsed().as_secs(),
+        now.elapsed().subsec_millis()
+    );
+
+    return distance_matrix;
 }

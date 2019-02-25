@@ -2,11 +2,14 @@
 mod tests {
 
     use ndarray::prelude::*;
+    use rayon::prelude::*;
     use graph_tree as tree;
     use tree_distance_matrix;
+    use tree_distance_matrix::TreeDistanceMatrix;
     use tree_merging;
     use utils;
     use uniprot;
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_load_tree_file() {
@@ -246,6 +249,46 @@ mod tests {
         let new_dm = dm.merge_organisms(&tax_id_map);
         assert!(new_dm.shape()[0] == 3);
         assert!(new_dm.shape()[1] == 3);
+    }
+
+    #[test]
+    fn test_merge_trees() {
+        let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
+        let cache_mapping_path = utils::get_cache_mapping_name(&"taxids/taxids_small.txt".to_string());
+        match utils::load_cache_mapping(&cache_mapping_path) {
+            Ok(m) => {
+                mapping = m;
+                println!("Used the cached the mapping file here: {:?} ", cache_mapping_path);
+            },
+            Err(_e) => {
+                mapping = uniprot::load_mapping_file(&"taxids/taxids_small.txt".to_string());
+                utils::cache_mapping(&mapping, &cache_mapping_path).expect(
+                    "Could not cache mapping file."
+                );
+                println!("Cached the mapping file here: {:?} ", cache_mapping_path);
+            }
+        }
+
+        println!("Loaded tax id map");
+        let trees = vec!(
+            "newick_trees/benchmark_tree_10k.random.tree",
+            "newick_trees/benchmark_tree_20k.random.tree",
+            //"newick_trees/benchmark_tree_40k.random.tree",
+            //"newick_trees/benchmark_tree_80k.random.tree"
+        );
+
+        let mut distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+            |t| utils::convert_file_to_distance_matrix(t.to_string())
+        ).collect();
+
+        println!("Loaded trees");
+
+        let mut merged_distance_matrices : Vec<TreeDistanceMatrix> = distance_matrices.par_iter().map(
+            |m| m.merge_organisms(&mapping)
+        ).collect();
+        println!("Merged organism distance matrix ");
+
+
     }
 
 }

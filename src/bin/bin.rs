@@ -45,7 +45,7 @@ fn main() {
     }
 
     let mut distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
-        |t| global_supertrees::convert_file_to_distance_matrix(t.to_string())
+        |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string())
     ).collect();
 
     if mapping.len() > 0 {

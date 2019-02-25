@@ -17,49 +17,12 @@ pub mod tree_merging;
 pub mod utils;
 pub mod uniprot;
 
-use std::time;
 use pyo3::prelude::*;
 use ndarray::Array2;
-use tree_distance_matrix::TreeDistanceMatrix;
+use utils::convert_file_to_distance_matrix;
 
 use numpy::{IntoPyArray, PyArray2};
 
-
-pub fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
-    let now = time::Instant::now();
-    let tree_file = utils::load_tree_file(String::from(fname));
-    println!(
-        "Loaded tree in {}.{} seconds.",
-        now.elapsed().as_secs(),
-        now.elapsed().subsec_millis()
-    );
-
-    let now = time::Instant::now();
-    let parsed_tree = graph_tree::Tree::parse(tree_file);
-    println!(
-        "Parsed tree in {}.{} seconds.",
-        now.elapsed().as_secs(),
-        now.elapsed().subsec_millis()
-    );
-
-    let now = time::Instant::now();
-    let _children = parsed_tree.traverse_children();
-    println!(
-        "Built tree traversal map in {}.{} seconds.",
-        now.elapsed().as_secs(),
-        now.elapsed().subsec_millis()
-    );
-
-    let now = time::Instant::now();
-    let distance_matrix = parsed_tree.to_distance_matrix();
-    println!(
-        "Built distance_matrix in {}.{} seconds.",
-        now.elapsed().as_secs(),
-        now.elapsed().subsec_millis()
-    );
-
-    return distance_matrix;
-}
 
 #[pymodinit]
 fn rust_ext(_py: Python, m: &PyModule) -> PyResult<()> {
