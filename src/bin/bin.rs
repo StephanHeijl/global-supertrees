@@ -12,6 +12,8 @@ use std::env;
 use rayon::prelude::*;
 use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 use std::collections::BTreeMap;
+use global_supertrees::tree_merging::merge_trees;
+
 
 
 fn main() {
@@ -30,7 +32,9 @@ fn main() {
                 },
                 Err(_e) => {
                     mapping = global_supertrees::uniprot::load_mapping_file(&arg);
-                    global_supertrees::utils::cache_mapping(&mapping, &cache_mapping_path).expect("Could not cache mapping file.");
+                    global_supertrees::utils::cache_mapping(&mapping, &cache_mapping_path).expect(
+                        "Could not cache mapping file."
+                    );
                     println!("Cached the mapping file here: {:?} ", cache_mapping_path);
                 }
             }
@@ -50,7 +54,11 @@ fn main() {
         ).collect();
     }
 
-    let trees : Vec<global_supertrees::graph_tree::Tree> = distance_matrices.par_iter().map(| dm | dm.neighbour_joining()).collect();
+    let trees : Vec<global_supertrees::graph_tree::Tree> = distance_matrices.par_iter().map(
+        | dm | dm.neighbour_joining()
+    ).collect();
+
+    merge_trees(trees);
 
 
 }
