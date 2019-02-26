@@ -99,6 +99,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
     return base_tree;
 }
 
+#[allow(dead_code)]
 fn merge_distance_matrices(dms: Vec<TreeDistanceMatrix>) -> TreeDistanceMatrix {
     let mut all_leaves: HashSet<String> = HashSet::new();
     for distance_matrix in dms.iter() {

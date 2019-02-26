@@ -274,7 +274,7 @@ mod tests {
             "newick_trees/benchmark_tree_10k.random.tree",
             "newick_trees/benchmark_tree_20k.random.tree",
             "newick_trees/benchmark_tree_40k.random.tree",
-            //"newick_trees/benchmark_tree_80k.random.tree"
+            "newick_trees/benchmark_tree_80k.random.tree"
         );
 
         let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
