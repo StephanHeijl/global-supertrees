@@ -13,7 +13,7 @@ n_leaves = len(re.findall("L\d{5}", tree_contents))
 tree_contents = re.sub("L\d{5}", "{}", tree_contents)
 
 uniprots = []
-skip = random.randint(0, 10000)
+skip = random.randint(0, 100)
 with open("../taxids/taxids_small.txt") as f:
     for l, line in enumerate(f):
         if l < skip:

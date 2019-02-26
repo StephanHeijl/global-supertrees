@@ -141,7 +141,7 @@ impl TreeDistanceMatrix {
         leaf_map_inv_vec.sort_by(|a, b| a.0.cmp(&b.0));
 
         // This will contain all the newly created branches
-        let mut branches: HashMap<usize, NodeIndex> = HashMap::new();
+        let mut branches: Vec<NodeIndex> = Vec::new();
 
         let mut graph : Graph<String, f32> = Graph::new();
         // Add root node on index 0
@@ -154,7 +154,6 @@ impl TreeDistanceMatrix {
         let mut n_iters = 1;
 
         while distance_matrix.shape()[0] > 1 {
-            println!("{}", n_iters);
             // Calculate the Q matrix
             let q_matrix = TreeDistanceMatrix::calculate_q_matrix(&distance_matrix);
             // Find the pair of leaves that have the lowest value in the q_matrix
@@ -179,10 +178,13 @@ impl TreeDistanceMatrix {
             let mut children : Vec<NodeIndex> = Vec::new();
             let mut child_distances : Vec<f32> = Vec::new();
             let mut rem_leaves: Vec<usize> = Vec::new();
+            let mut rem_branches: Vec<usize> = Vec::new();
 
             // Check if the first node is already a branch
-            if branches.contains_key(&lowest_pair[0]) {
-                children.push(branches.remove(&lowest_pair[0]).expect("Branch with first lowest pair ID does not exist."));
+            if lowest_pair[0] >= leaf_map_inv_vec.len() {
+                let branch_index = lowest_pair[0] - leaf_map_inv_vec.len();
+                rem_branches.push(branch_index);
+                children.push(branches[branch_index]);
                 child_distances.push(pair_leaf_distances.0);
             } else {
                 rem_leaves.push(lowest_pair[0]); 
@@ -191,8 +193,10 @@ impl TreeDistanceMatrix {
             }
 
             // Check if the second node is already a tree
-            if branches.contains_key(&lowest_pair[1]) {
-                children.push(branches.remove(&lowest_pair[1]).expect("Branch with second lowest pair ID does not exist."));
+            if lowest_pair[1] >= leaf_map_inv_vec.len() {
+                let branch_index = lowest_pair[1] - leaf_map_inv_vec.len();
+                rem_branches.push(branch_index);
+                children.push(branches[branch_index]);
                 child_distances.push(pair_leaf_distances.1);
             } else {
                 rem_leaves.push(lowest_pair[1]);
@@ -201,37 +205,30 @@ impl TreeDistanceMatrix {
             }
 
             // Remove leaves from the leaf map if they have been selected
-            let mut leaf_map_inv_vec_new = Vec::new();
-            for (i, el) in leaf_map_inv_vec.clone().iter().enumerate() {
-                if !rem_leaves.contains(&i) {
-                    leaf_map_inv_vec_new.push(el.clone());
-                }
+            rem_leaves.sort_unstable_by(|a, b| b.cmp(a));
+            for ri in rem_leaves {
+                leaf_map_inv_vec.remove(ri);
             }
-            leaf_map_inv_vec = leaf_map_inv_vec_new.clone();
+
+            // Remove branches that have been selected.
+            rem_branches.sort_unstable_by(|a, b| b.cmp(a));
+            for ri in rem_branches {
+                branches.remove(ri);
+            }
 
             // Create connections
             let new_branch = graph.add_node(format!(">>{}", n_iters));
             graph.add_edge(new_branch, children[0], child_distances[0]);
             graph.add_edge(new_branch, children[1], child_distances[1]);
 
-            // Shift all the branches to conform to the new shifted index
-            // as the distance matrix has shrunk
-            let mut branches_new: HashMap<usize, NodeIndex> = HashMap::new();
-            // Get the tree keys without borrowing them.
-            let branch_keys: Vec<usize> = branches.keys().map(|x| *x).collect();
-            for idx in branch_keys {
-                branches_new.insert(idx - 2, branches.remove(&idx).expect("Could not move branch"));
-            }
-            branches = branches_new;
-
             distance_matrix = pair_distance_matrix;
 
-            branches.insert(distance_matrix.shape()[0] - 1, new_branch);
+            branches.push(new_branch);
 
             n_iters += 1;
         }
 
-        graph.add_edge(node_index(0), branches[&(branches.len() - 1)], f32::NAN);
+        graph.add_edge(node_index(0), branches[(branches.len() - 1)], f32::NAN);
 
         Tree { graph }
     }

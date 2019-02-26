@@ -272,22 +272,24 @@ mod tests {
         println!("Loaded tax id map");
         let trees = vec!(
             "newick_trees/benchmark_tree_10k.random.tree",
-            "newick_trees/benchmark_tree_20k.random.tree",
+            //"newick_trees/benchmark_tree_20k.random.tree",
             //"newick_trees/benchmark_tree_40k.random.tree",
             //"newick_trees/benchmark_tree_80k.random.tree"
         );
 
-        let mut distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+        let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
             |t| utils::convert_file_to_distance_matrix(t.to_string())
         ).collect();
 
         println!("Loaded trees");
 
-        let mut merged_distance_matrices : Vec<TreeDistanceMatrix> = distance_matrices.par_iter().map(
-            |m| m.merge_organisms(&mapping)
+        let mut normalized_trees : Vec<tree::Tree> = distance_matrices.iter().map(
+            |m| m.merge_organisms(&mapping).neighbour_joining()
         ).collect();
-        println!("Merged organism distance matrix ");
 
+        println!("Merged organism distance matrices");
+
+        //tree_merging::merge_trees(normalized_trees);
 
     }
 
