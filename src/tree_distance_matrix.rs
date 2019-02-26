@@ -29,31 +29,19 @@ impl TreeDistanceMatrix {
 
     /// Calculates a Q matrix based on a distance matrix for the neighbour joining algorithm.
     pub fn calculate_q_matrix(dm: &Array2<f32>) -> Array2<f32> {
+        let mut q_matrix: Array2<f32> = Array2::zeros(dm.raw_dim());
         let n = dm.shape()[0]; // Number of taxa
 
-        let row_sums : Vec<f32> = (0..n).map(| i | dm.row(i).sum()).collect();
-        let col_sums : Vec<f32> = (0..n).map(| i | dm.column(i).sum()).collect();
+        let row_sums : Vec<f32> = dm.sum_axis(Axis(1)).to_vec();
+        let col_sums : Vec<f32> = dm.sum_axis(Axis(0)).to_vec();
         let mult_dm = dm * (n as f32 - 2.0);
-        let rows : Vec<Array2<f32>>  = (0..n).into_par_iter().map(
-            |i| TreeDistanceMatrix::calculate_q_row(i, n, &mult_dm, &row_sums, &col_sums)
-        ).collect();
 
-        let row_views: Vec<ndarray::ArrayBase<ndarray::ViewRepr<&f32>, ndarray::Dim<[usize; 2]>>> =
-            rows.iter().map(|row| row.view()).collect();
-
-        let q_matrix = stack(Axis(0), &row_views).unwrap();
-        //println!("{:?}", q_matrix.shape());
-        q_matrix
-    }
-
-
-    /// Calculates a single Q matrix row and returns it as a 2D array for stacking.
-    fn calculate_q_row(i : usize, n : usize, mult_dm : &Array2<f32>, row_sums : &Vec<f32>, col_sums : &Vec<f32>) -> Array2<f32> {
-        let mut q_row: Array2<f32> = Array2::zeros((1, n));
-        for j in 0..n {
-            q_row[[0, j]] = mult_dm[[i, j]] - row_sums[i] - col_sums[j];
+        for i in 0..n {
+            for j in 0..n {
+                q_matrix[[i, j]] = mult_dm[[i, j]] - row_sums[i] - col_sums[j];
+            }
         }
-        q_row
+        q_matrix
     }
 
     /// Calculates a pair distance matrix based on a Qmatrix for the neighbour joining algorithm.
