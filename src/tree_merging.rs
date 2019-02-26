@@ -59,7 +59,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                 for (_bi, base_level) in base_tree.traverse_children().iter().enumerate() {
                     let base_leaf_set = utils::vec_to_set(&base_level.leaves);
 
-                    println!("base_leaf_set: {:?}", base_leaf_set);
+                    //println!("base_leaf_set: {:?}", base_leaf_set);
 
                     let overlapping_leaves : Vec<&String> = leaf_set.intersection(&base_leaf_set).collect();
                     if overlapping_leaves.len() == 0 {

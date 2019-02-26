@@ -8,9 +8,9 @@ tree_file = sys.argv[1]
 with open(tree_file) as f:
     tree_contents = f.read()
 
-n_leaves = len(re.findall("L\d{5}", tree_contents))
+n_leaves = len(re.findall("L\d{4,6}", tree_contents))
 
-tree_contents = re.sub("L\d{5}", "{}", tree_contents)
+tree_contents = re.sub("L\d{4,6}", "{}", tree_contents)
 
 uniprots = []
 skip = random.randint(0, 100)
