@@ -97,15 +97,23 @@ impl Tree {
         Tree::filter_uniprot_ids(self.get_leaves())
     }
 
+    fn _get_parent_edge(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
+        return graph.edges_directed(node, Incoming).nth(0);
+    }
+
+    fn _get_parent_node(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> NodeIndex<u32> {
+        let parent_edge = Tree::_get_parent_edge(graph, node).expect("Node does not have a parent.");
+        parent_edge.source()
+    }
+
     /// Returns the edge that connects this node to its parent.
     pub fn get_parent_edge(&self, node : NodeIndex<u32>) -> Option<EdgeReference<f32, u32>> {
-        return self.graph.edges_directed(node, Incoming).nth(0);
+        Tree::_get_parent_edge(&self.graph, node)
     }
 
     /// Returns the node above this node in the tree structure. (A node that is closer to the root.)
     pub fn get_parent_node(&self, node : NodeIndex<u32>) -> NodeIndex<u32> {
-        let parent_edge = self.get_parent_edge(node).expect("Node does not have a parent.");
-        parent_edge.source()
+        Tree::_get_parent_node(&self.graph, node)
     }
 
     /// Returns a vector of Levels in a depth-first fashion.
@@ -179,6 +187,46 @@ impl Tree {
         }
 
         return children;
+    }
+
+    pub fn to_newick(&self) -> String {
+        for node_idx in self.graph.node_indices() {
+            if self.graph.node_weight(node_idx).unwrap() == "<root>" {
+                return Tree::_to_newick(node_idx, &self.graph);
+            }
+        }
+        String::new() // Fallback
+    }
+
+    pub fn _to_newick(node : NodeIndex<u32>, graph : &Graph<String, f32> ) -> String {
+        let mut newick : String = String::new();
+        newick.push_str("(");
+
+        for edge in graph.edges_directed(node, petgraph::Outgoing) {
+            let nb_node = edge.target();
+            let nw = graph.node_weight(nb_node).unwrap();
+            if nw.starts_with(">>") {
+                newick.push_str(&Tree::_to_newick(nb_node, graph));
+            } else {
+                newick.push_str(&format!("\"{}\":{}", nw, edge.weight()));
+            }
+
+            newick.push_str(",");
+        }
+
+        newick = newick.trim_end_matches(',').to_string();
+        match Tree::_get_parent_edge(graph, node) {
+            Some(edge) => {
+                if edge.weight().is_nan() {
+                    newick.push_str(")");
+                } else {
+                    newick.push_str(&format!("):{}", edge.weight()));
+                }
+            }
+            None => { newick.push_str(")"); }
+        }
+
+        newick
     }
 
     /// Adds a node (b) as a sibling of another node (a). They will share a parent node. Distance is

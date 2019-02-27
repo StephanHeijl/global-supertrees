@@ -19,7 +19,6 @@ use global_supertrees::tree_merging::merge_trees;
 fn main() {
 
     let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
-
     let mut trees : Vec<String> = Vec::new();
 
     for arg in env::args() {
@@ -58,7 +57,9 @@ fn main() {
         | dm | dm.neighbour_joining()
     ).collect();
 
-    merge_trees(trees);
+    let merged_tree = merge_trees(trees);
+
+
 
 
 }

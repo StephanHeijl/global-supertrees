@@ -36,7 +36,10 @@ fn get_tree_size(tree: &Tree) -> usize {
 fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
     let max_ancestor_search = 1;
 
-    trees.sort_unstable_by(|a, b| get_tree_size(a).cmp(&get_tree_size(b)));
+    trees.sort_unstable_by(
+        |a, b|
+            get_tree_size(b).cmp(&get_tree_size(a))
+    );
     let mut base_tree : Tree;
 
     match trees.pop() {
@@ -70,16 +73,14 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                         continue; // Skip if there are no new leaves.
                     }
 
-                    println!("Found new siblings: {:?}", new_leaves);
-
                     let base_leaf_node_idx = base_level.leaf_nodes[0];
 
                     for new_leaf in new_leaves.iter() {
                         if base_tree.get_leaves().contains(new_leaf) {
                             println!("Skipping {} because it's already in the base tree.", new_leaf);
                             continue;
-
                         }
+                        println!("Found new sibling: {:?}", new_leaf);
                         match level.leaves.iter().position(|c| &c == new_leaf) {
                             Some(idx) => {
                                 let new_leaf_distance = level.leaf_distances[idx];
@@ -95,7 +96,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
         }
     }
 
-    println!("{:#?}", base_tree);
+    //println!("{:#?}", base_tree);
     return base_tree;
 }
 

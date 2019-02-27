@@ -227,6 +227,13 @@ mod tests {
     }
 
     #[test]
+    fn test_to_newick() {
+        let tree_string = String::from("(Bovine:0.69395,(Hylobates:0.36079,(Pongo:0.33636,(G._Gorilla:0.17147,(P._paniscus:0.19268,H._sapiens:0.11927):0.08386):0.06124):0.15057):0.54939,Rodent:1.21460);");
+        let tree = tree::Tree::parse(tree_string);
+        tree.to_newick();
+    }
+
+    #[test]
     fn test_batch_id_tax_mapping() {
         let identifiers = vec!("Q6GZX4", "Q91G88", "Q6GZX2");
         let identifiers = identifiers.iter().map(|s| String::from(*s)).collect();
@@ -254,14 +261,15 @@ mod tests {
     #[test]
     fn test_merge_trees() {
         let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
-        let cache_mapping_path = utils::get_cache_mapping_name(&"taxids/taxids_small.txt".to_string());
+        let taxid_path = "taxids/taxids_overlap_6.txt".to_string();
+        let cache_mapping_path = utils::get_cache_mapping_name(&taxid_path);
         match utils::load_cache_mapping(&cache_mapping_path) {
             Ok(m) => {
                 mapping = m;
                 println!("Used the cached the mapping file here: {:?} ", cache_mapping_path);
             },
             Err(_e) => {
-                mapping = uniprot::load_mapping_file(&"taxids/taxids_small.txt".to_string());
+                mapping = uniprot::load_mapping_file(&taxid_path);
                 utils::cache_mapping(&mapping, &cache_mapping_path).expect(
                     "Could not cache mapping file."
                 );
@@ -273,19 +281,22 @@ mod tests {
         let trees = vec!(
             "newick_trees/benchmark_tree_10k.random.tree",
             "newick_trees/benchmark_tree_20k.random.tree",
-            "newick_trees/benchmark_tree_40k.random.tree",
-            "newick_trees/benchmark_tree_80k.random.tree"
+            //"newick_trees/benchmark_tree_40k.random.tree",
+            //"newick_trees/benchmark_tree_80k.random.tree"
         );
+
 
         let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
             |t| utils::convert_file_to_distance_matrix(t.to_string())
         ).collect();
 
+
         println!("Loaded trees");
 
-        let mut normalized_trees : Vec<tree::Tree> = distance_matrices.par_iter().map(
+        let normalized_trees : Vec<tree::Tree> = distance_matrices.iter().map(
             |m| m.merge_organisms(&mapping).neighbour_joining()
         ).collect();
+
 
         println!("Merged organism distance matrices");
 
