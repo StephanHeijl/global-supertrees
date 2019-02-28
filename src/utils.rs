@@ -91,14 +91,6 @@ pub fn convert_file_to_distance_matrix(fname : String) -> TreeDistanceMatrix {
     );
 
     let now = time::Instant::now();
-    let _children = parsed_tree.traverse_children();
-    println!(
-        "Built tree traversal map in {}.{} seconds.",
-        now.elapsed().as_secs(),
-        now.elapsed().subsec_millis()
-    );
-
-    let now = time::Instant::now();
     let distance_matrix = parsed_tree.to_distance_matrix();
     println!(
         "Built distance_matrix in {}.{} seconds.",

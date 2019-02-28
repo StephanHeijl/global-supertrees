@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn test_merge_trees() {
         let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
-        let taxid_path = "taxids/taxids_overlap_6.txt".to_string();
+        let taxid_path = "taxids/taxids_small.txt".to_string();
         let cache_mapping_path = utils::get_cache_mapping_name(&taxid_path);
         match utils::load_cache_mapping(&cache_mapping_path) {
             Ok(m) => {

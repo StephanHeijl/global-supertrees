@@ -101,9 +101,10 @@ impl Tree {
         return graph.edges_directed(node, Incoming).nth(0);
     }
 
-    fn _get_parent_node(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> NodeIndex<u32> {
+    /// Gets a parent node from a graph statically
+    fn _get_parent_node(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, &'static str> {
         let parent_edge = Tree::_get_parent_edge(graph, node).expect("Node does not have a parent.");
-        parent_edge.source()
+        Ok(parent_edge.source())
     }
 
     /// Returns the edge that connects this node to its parent.
@@ -112,8 +113,48 @@ impl Tree {
     }
 
     /// Returns the node above this node in the tree structure. (A node that is closer to the root.)
-    pub fn get_parent_node(&self, node : NodeIndex<u32>) -> NodeIndex<u32> {
+    pub fn get_parent_node(&self, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, &'static str> {
         Tree::_get_parent_node(&self.graph, node)
+    }
+
+    pub fn get_leaves_from_node(graph : &Graph<String, f32>, start_node : NodeIndex<u32>) -> Vec<NodeIndex<u32>> {
+        let mut dfs = Dfs::new(graph,  start_node);
+        let mut nodes : Vec<NodeIndex<u32>> = Vec::new();
+        while let Some(node) = dfs.next(graph) {
+            let node_name = graph.node_weight(node).unwrap();
+            let mut node_distance = f32::NAN;
+
+            if !node_name.starts_with(">>") {
+                nodes.push(node)
+            }
+        }
+        nodes
+    }
+
+    pub fn get_node_distance_to_parent(graph : &Graph<String, f32>, node : NodeIndex<u32>, n_removed : usize) -> f32 {
+        let mut current_parent_node = node;
+        let mut distance = 0.0;
+        for _anc in 0..n_removed {
+            match Tree::_get_parent_edge(graph, current_parent_node) {
+                Some(e) => {
+                    current_parent_node = e.source();
+                    distance += e.weight();
+                },
+                None => { break }
+            }
+        }
+        distance
+    }
+
+    pub fn get_node_siblings(graph : &Graph<String, f32>, node : NodeIndex<u32>, n_removed : usize) -> Vec<NodeIndex<u32>> {
+        let mut current_parent_node = node;
+        for _anc in 0..n_removed {
+            match Tree::_get_parent_node(graph, current_parent_node) {
+                Ok(n) => {current_parent_node = n; },
+                Err(_) => { break }
+            }
+        }
+        Tree::get_leaves_from_node(graph, current_parent_node)
     }
 
     /// Returns a vector of Levels in a depth-first fashion.
@@ -232,7 +273,20 @@ impl Tree {
     /// Adds a node (b) as a sibling of another node (a). They will share a parent node. Distance is
     /// calculated from the parent, not from the sibling.
     pub fn add_sibling(&mut self, a : NodeIndex<u32>, b : String, distance : f32) {
-        let parent_node = self.get_parent_node(a);
+        let parent_node = self.get_parent_node(a).unwrap();
+        self.add_child(parent_node, b, distance);
+    }
+
+    /// Adds a node (b) as a sibling of another node (a). They will share a parent node. Distance is
+    /// calculated from the parent, not from the sibling.
+    pub fn add_sibling_n_removed(&mut self, a : NodeIndex<u32>, b : String, distance : f32, n_removed : usize) {
+        let mut parent_node : NodeIndex<u32> = a;
+        for i in 0..n_removed {
+            match self.get_parent_node(parent_node) {
+                Ok(n) => { parent_node = n; },
+                Err(_) => { break }
+            }
+        }
         self.add_child(parent_node, b, distance);
     }
 
@@ -374,7 +428,7 @@ impl Tree {
         let mut levels_from_root = 0;
         while self.graph.node_weight(current_node).expect("No label for node.") != "<root>" {
             levels_from_root += 1;
-            current_node = self.get_parent_node(current_node);
+            current_node = self.get_parent_node(current_node).unwrap();
         }
 
         if levels_from_root == 0 {

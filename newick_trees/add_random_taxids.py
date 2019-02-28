@@ -13,15 +13,12 @@ n_leaves = len(re.findall("L\d{4,6}", tree_contents))
 tree_contents = re.sub("L\d{4,6}", "{}", tree_contents)
 
 uniprots = []
-skip = random.randint(0, 100)
 with open("../taxids/taxids_small.txt") as f:
     for l, line in enumerate(f):
-        if l < skip:
-            continue
-        if l - skip > n_leaves:
-            break
         uniprot, _, taxid = line.strip().split("\t")
         uniprots.append(uniprot)
+
+uniprots = random.sample(uniprots, n_leaves)
 
 new_tree = tree_contents.format(*uniprots)
 with open(tree_file.replace("anon", "random"), "w+") as f:

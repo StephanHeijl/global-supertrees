@@ -134,7 +134,7 @@ impl TreeDistanceMatrix {
     pub fn neighbour_joining(&self) -> Tree {
         println!("Start neighbour joining");
         let mut distance_matrix = self.distance_matrix.clone();
-        println!("{:?}", distance_matrix.shape());
+        //println!("{:?}", distance_matrix.shape());
         let mut leaf_map_inv_vec: Vec<(usize, String)> = self
             .leaf_map_inv
             .iter()
@@ -233,7 +233,7 @@ impl TreeDistanceMatrix {
             n_iters += 1;
         }
 
-        println!("{:?} - {}", distance_matrix.shape(), branches.len());
+        //println!("{:?} - {}", distance_matrix.shape(), branches.len());
         graph.add_edge(node_index(0), branches[(branches.len() - 1)], f32::NAN);
 
         Tree { graph }

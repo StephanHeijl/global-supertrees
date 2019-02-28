@@ -1,14 +1,14 @@
 use ndarray::prelude::*;
-use rayon::prelude::*;
 use std::collections::HashSet;
 use std::f32;
 use graph_tree::*;
 use tree_distance_matrix::*;
-use utils;
+use petgraph::visit::Dfs;
+use petgraph::graph::node_index;
 
 pub fn merge_trees(trees: Vec<Tree>) -> Tree {
-    let distance_matrices: Vec<TreeDistanceMatrix> =
-        trees.iter().map(|t| t.to_distance_matrix()).collect();
+//    let distance_matrices: Vec<TreeDistanceMatrix> =
+//        trees.iter().map(|t| t.to_distance_matrix()).collect();
 
 //    let tree_leafs: Vec<Vec<String>> = distance_matrices
 //        .iter()
@@ -34,60 +34,57 @@ fn get_tree_size(tree: &Tree) -> usize {
 }
 
 fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
-    let max_ancestor_search = 1;
+    let max_ancestor_search = 3;
 
     trees.sort_unstable_by(
         |a, b|
-            get_tree_size(b).cmp(&get_tree_size(a))
+            get_tree_size(a).cmp(&get_tree_size(b))
     );
     let mut base_tree : Tree;
 
     match trees.pop() {
-        Some(t) => {
-            base_tree = t;
-        }
-        None => {
-            return Tree::new();
-        }
+        Some(t) => { base_tree = t; }
+        None => { return Tree::new(); }  // Return an empty tree if the list is empty
     }
-    //println!("{:#?}", base_tree);
 
     trees.reverse(); // Start with the largest trees.
 
-    for _anc in 0..max_ancestor_search {
-        for tree in trees.iter() {
-            //println!("{:?}", tree);
-            for level in tree.traverse_children() {
-                let leaf_set = utils::vec_to_set(&level.leaves);
-                for (_bi, base_level) in base_tree.traverse_children().iter().enumerate() {
-                    let base_leaf_set = utils::vec_to_set(&base_level.leaves);
+    for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
+        for _iteration in 0..3 {  // Iteratively attempt to add more siblings
+            println!("===========================================================================");
+            let base_leaves = base_tree.get_leaves();
+            for tree in trees.iter() {
 
-                    //println!("base_leaf_set: {:?}", base_leaf_set);
+                let mut dfs = Dfs::new(&tree.graph,  node_index(0));
 
-                    let overlapping_leaves : Vec<&String> = leaf_set.intersection(&base_leaf_set).collect();
-                    if overlapping_leaves.len() == 0 {
-                        continue;  // Skip if there are no overlapping siblings.
-                    }
-                    let new_leaves: Vec<&String> = leaf_set.difference(&base_leaf_set).collect();
-                    if new_leaves.len() == 0 {
-                        continue; // Skip if there are no new leaves.
+                while let Some(node) = dfs.next(&tree.graph) {
+                    let node_name = tree.graph.node_weight(node).unwrap();
+                    if node_name == "<root>" {
+                        continue;
                     }
 
-                    let base_leaf_node_idx = base_level.leaf_nodes[0];
-
-                    for new_leaf in new_leaves.iter() {
-                        if base_tree.get_leaves().contains(new_leaf) {
-                            println!("Skipping {} because it's already in the base tree.", new_leaf);
-                            continue;
+                    if node_name.starts_with(">>") {
+                        // This is a parent node.
+                    } else {
+                        // Encountered a leaf node.
+                        if !base_leaves.contains(node_name) {
+                            continue;  // Skip if there is no overlap.
                         }
-                        println!("Found new sibling: {:?}", new_leaf);
-                        match level.leaves.iter().position(|c| &c == new_leaf) {
-                            Some(idx) => {
-                                let new_leaf_distance = level.leaf_distances[idx];
-                                base_tree.add_sibling(base_leaf_node_idx, new_leaf.to_string(), new_leaf_distance);
-                            }
-                            None => {
-                                continue;
+                        let base_node = base_tree.find_node_idx(node_name).unwrap();
+                        let siblings = Tree::get_node_siblings(&tree.graph, node, anc);
+
+                        for sibling in siblings {
+                            let sibling_name = tree.graph.node_weight(sibling).unwrap();
+                            if !base_leaves.contains(sibling_name) {
+                                let sibling_distance = Tree::get_node_distance_to_parent(&tree.graph,sibling, anc);
+                                base_tree.add_sibling_n_removed(
+                                    base_node,
+                                    sibling_name.to_string(),
+                                    sibling_distance,
+                                    anc
+                                );
+
+                                println!("Added sibling {}", node_name);
                             }
                         }
                     }

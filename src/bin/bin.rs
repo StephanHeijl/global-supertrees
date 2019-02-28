@@ -8,6 +8,8 @@ extern crate bincode;
 extern crate global_supertrees;
 
 
+use std::fs::File;
+use std::io::prelude::*;
 use std::env;
 use rayon::prelude::*;
 use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
@@ -57,9 +59,15 @@ fn main() {
         | dm | dm.neighbour_joining()
     ).collect();
 
+    for (t, tree) in trees.iter().enumerate() {
+        let mut file = File::create(format!("sub_{}.tree", t)).expect("IO Error while creating file.");
+        file.write_all(tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");
+    }
+
     let merged_tree = merge_trees(trees);
 
-
+    let mut file = File::create("merged.tree").expect("IO Error while creating file.");
+    file.write_all(merged_tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");
 
 
 }
