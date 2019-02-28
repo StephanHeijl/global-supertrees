@@ -1,3 +1,4 @@
+
 use ndarray::prelude::*;
 use std::collections::HashMap;
 use std::f32;
@@ -102,8 +103,8 @@ impl Tree {
     }
 
     /// Gets a parent node from a graph statically
-    fn _get_parent_node(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, &'static str> {
-        let parent_edge = Tree::_get_parent_edge(graph, node).expect("Node does not have a parent.");
+    fn _get_parent_node(graph : &Graph<String, f32>, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, std::option::NoneError> {
+        let parent_edge = Tree::_get_parent_edge(graph, node)?;
         Ok(parent_edge.source())
     }
 
@@ -113,7 +114,7 @@ impl Tree {
     }
 
     /// Returns the node above this node in the tree structure. (A node that is closer to the root.)
-    pub fn get_parent_node(&self, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, &'static str> {
+    pub fn get_parent_node(&self, node : NodeIndex<u32>) -> Result<NodeIndex<u32>, std::option::NoneError> {
         Tree::_get_parent_node(&self.graph, node)
     }
 
