@@ -52,12 +52,12 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
     for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
         for _iteration in 0..3 {  // Iteratively attempt to add more siblings
             println!("===========================================================================");
-            let base_leaves = base_tree.get_leaves();
             for tree in trees.iter() {
-
                 let mut dfs = Dfs::new(&tree.graph,  node_index(0));
 
                 while let Some(node) = dfs.next(&tree.graph) {
+                    let base_leaves = base_tree.get_leaves();
+
                     let node_name = tree.graph.node_weight(node).unwrap();
                     if node_name == "<root>" {
                         continue;
@@ -75,7 +75,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
 
                         for sibling in siblings {
                             let sibling_name = tree.graph.node_weight(sibling).unwrap();
-                            if !base_leaves.contains(sibling_name) {
+                            if !base_tree.get_leaves().contains(sibling_name) {
                                 let sibling_distance = Tree::get_node_distance_to_parent(&tree.graph,sibling, anc);
                                 base_tree.add_sibling_n_removed(
                                     base_node,
@@ -83,7 +83,6 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                                     sibling_distance,
                                     anc
                                 );
-
                                 println!("Added sibling {}", node_name);
                             }
                         }
