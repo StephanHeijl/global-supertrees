@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use ndarray::prelude::*;
 use std::collections::HashSet;
 use std::f32;
@@ -5,28 +6,38 @@ use graph_tree::*;
 use tree_distance_matrix::*;
 use petgraph::visit::Dfs;
 use petgraph::graph::node_index;
+use utils;
 
 pub fn merge_trees(trees: Vec<Tree>) -> Tree {
-//    let distance_matrices: Vec<TreeDistanceMatrix> =
-//        trees.iter().map(|t| t.to_distance_matrix()).collect();
+    let distance_matrices: Vec<TreeDistanceMatrix> =
+        trees.par_iter().map(|t| t.to_distance_matrix()).collect();
 
-//    let tree_leafs: Vec<Vec<String>> = distance_matrices
-//        .iter()
-//        .map(|t| utils::keys_vec(&t.leaf_map))
-//        .collect();
-//    // Create a shared matrix from which every tree can get the new mean distances.
-//    let merged_distances = merge_distance_matrices(distance_matrices);
-//
-//    let new_trees: Vec<Tree> = tree_leafs
-//        .iter()
-//        .map(|t| {
-//            merged_distances
-//                .get_partial_distance_matrix(t)
-//                .neighbour_joining()
-//        })
-//        .collect();
+    mean_merge_distance_matrices(distance_matrices)
+}
 
-    sibling_merging(trees)
+pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>) -> Tree {
+    println!("Started mean merging");
+    let tree_leafs: Vec<Vec<String>> = distance_matrices
+        .par_iter()
+        .map(|t| utils::keys_vec(&t.leaf_map))
+        .collect();
+
+    println!("Merging distance matrices");
+    // Create a shared matrix from which every tree can get the new mean distances.
+    let merged_distances = merge_distance_matrices(distance_matrices);
+
+    println!("Replacing values with mean values.");
+    let new_trees: Vec<Tree> = tree_leafs
+        .par_iter()
+        .map(|t| {
+            merged_distances
+                .get_partial_distance_matrix(t)
+                .neighbour_joining()
+        })
+        .collect();
+
+    println!("Started sibling merging");
+    sibling_merging(new_trees)
 }
 
 fn get_tree_size(tree: &Tree) -> usize {
@@ -50,8 +61,10 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
     trees.reverse(); // Start with the largest trees.
 
     for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
-        for _iteration in 0..3 {  // Iteratively attempt to add more siblings
-            println!("===========================================================================");
+        let mut iteration_added_siblings = true;
+        while iteration_added_siblings {  // Iteratively attempt to add more siblings
+            iteration_added_siblings = false;
+            println!("==({})==", anc);
             for tree in trees.iter() {
                 let mut dfs = Dfs::new(&tree.graph,  node_index(0));
 
@@ -75,7 +88,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
 
                         for sibling in siblings {
                             let sibling_name = tree.graph.node_weight(sibling).unwrap();
-                            if !base_tree.get_leaves().contains(sibling_name) {
+                            if !base_leaves.contains(sibling_name) {
                                 let sibling_distance = Tree::get_node_distance_to_parent(&tree.graph,sibling, anc);
                                 base_tree.add_sibling_n_removed(
                                     base_node,
@@ -83,7 +96,8 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
                                     sibling_distance,
                                     anc
                                 );
-                                println!("Added sibling {}", node_name);
+                                println!("Added sibling {}", sibling_name);
+                                iteration_added_siblings = true;
                             }
                         }
                     }
@@ -97,6 +111,9 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
 }
 
 #[allow(dead_code)]
+/// This function creates a merged distance matrix, where some fields are filled with NaN because
+/// there is no mapping between the species in any of the trees. Trees can be reconstructed using
+/// the `get_partial_distance_matrix` function.
 fn merge_distance_matrices(dms: Vec<TreeDistanceMatrix>) -> TreeDistanceMatrix {
     let mut all_leaves: HashSet<String> = HashSet::new();
     for distance_matrix in dms.iter() {

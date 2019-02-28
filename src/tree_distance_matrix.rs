@@ -132,7 +132,6 @@ impl TreeDistanceMatrix {
 
     /// Performs the neighbour joining algorithm on this distance matrix to create a tree.
     pub fn neighbour_joining(&self) -> Tree {
-        println!("Start neighbour joining");
         let mut distance_matrix = self.distance_matrix.clone();
         //println!("{:?}", distance_matrix.shape());
         let mut leaf_map_inv_vec: Vec<(usize, String)> = self

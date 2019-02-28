@@ -7,14 +7,13 @@ extern crate serde;
 extern crate bincode;
 extern crate global_supertrees;
 
-
 use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 use rayon::prelude::*;
 use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 use std::collections::BTreeMap;
-use global_supertrees::tree_merging::merge_trees;
+use global_supertrees::tree_merging::mean_merge_distance_matrices;
 
 
 
@@ -22,6 +21,8 @@ fn main() {
 
     let mut mapping : BTreeMap<[u8; 10], u32> = BTreeMap::new();
     let mut trees : Vec<String> = Vec::new();
+
+    println!("Going to load {} trees.", env::args().len() - 1);
 
     for arg in env::args() {
         if arg.ends_with(".txt") {
@@ -45,26 +46,16 @@ fn main() {
         }
     }
 
-    let mut distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
-        |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string())
-    ).collect();
-
-    if mapping.len() > 0 {
-        distance_matrices = distance_matrices.par_iter().map(
-            |dm| dm.merge_organisms(&mapping)
-        ).collect();
+    if mapping.len() == 0 {
+        println!("No mapping specified.");
+        std::process::exit(1);
     }
 
-    let trees : Vec<global_supertrees::graph_tree::Tree> = distance_matrices.par_iter().map(
-        | dm | dm.neighbour_joining()
+    let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+        |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).merge_organisms(&mapping)
     ).collect();
 
-    for (t, tree) in trees.iter().enumerate() {
-        let mut file = File::create(format!("sub_{}.tree", t)).expect("IO Error while creating file.");
-        file.write_all(tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");
-    }
-
-    let merged_tree = merge_trees(trees);
+    let merged_tree = mean_merge_distance_matrices(distance_matrices);
 
     let mut file = File::create("merged.tree").expect("IO Error while creating file.");
     file.write_all(merged_tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");

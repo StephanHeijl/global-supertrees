@@ -123,8 +123,6 @@ impl Tree {
         let mut nodes : Vec<NodeIndex<u32>> = Vec::new();
         while let Some(node) = dfs.next(graph) {
             let node_name = graph.node_weight(node).unwrap();
-            let mut node_distance = f32::NAN;
-
             if !node_name.starts_with(">>") {
                 nodes.push(node)
             }
@@ -282,7 +280,7 @@ impl Tree {
     /// calculated from the parent, not from the sibling.
     pub fn add_sibling_n_removed(&mut self, a : NodeIndex<u32>, b : String, distance : f32, n_removed : usize) {
         let mut parent_node : NodeIndex<u32> = a;
-        for i in 0..n_removed {
+        for _i in 0..n_removed {
             match self.get_parent_node(parent_node) {
                 Ok(n) => { parent_node = n; },
                 Err(_) => { break }
