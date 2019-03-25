@@ -7,6 +7,7 @@ extern crate serde;
 extern crate bincode;
 extern crate global_supertrees;
 
+use std::f32;
 use std::fs::File;
 use std::io::prelude::*;
 use std::env;
@@ -14,8 +15,6 @@ use rayon::prelude::*;
 use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 use std::collections::BTreeMap;
 use global_supertrees::tree_merging::mean_merge_distance_matrices;
-
-
 
 fn main() {
 
@@ -48,17 +47,51 @@ fn main() {
 
     if mapping.len() == 0 {
         println!("No mapping specified.");
-        std::process::exit(1);
+        let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+            |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string())
+        ).collect();
+    } else {
+        let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+            |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).merge_organisms(&mapping)
+        ).collect();
     }
 
-    let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
-        |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).merge_organisms(&mapping)
-    ).collect();
+
+//
+//    for dm in distance_matrices.iter() {
+//        let mean = dm.distance_matrix.sum() / (dm.shape()[0] as f32 * dm.shape()[0] as f32);
+//        let mut min = f32::MAX;
+//        let mut max = 0.0;
+//
+//        for el in dm.distance_matrix.iter() {
+//            if el < &min {
+//                min = *el;
+//            }
+//            if el > &max {
+//                max = *el;
+//            }
+//        }
+//
+//        let mut values : Vec<f32> = dm.distance_matrix.iter().map(|x| *x).collect();
+//        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+//        let median = values[values.len() / 2];
+//        println!("Mean: {}, max: {}, min: {}, Median: {}", mean, max, min, median);
+//    }
+//
+//    std::process::exit(0);
 
     let merged_tree = mean_merge_distance_matrices(distance_matrices);
 
-    let mut file = File::create("merged.tree").expect("IO Error while creating file.");
-    file.write_all(merged_tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");
+    let mut out_tree_file = File::create("merged.tree").expect("IO Error while creating file.");
+    out_tree_file.write_all(merged_tree.to_newick().as_bytes()).expect("IO Error while writing merged tree.");
+    println!("Created tree with {} leaves.", merged_tree.get_leaves().len());
+
+    let final_distance_matrix = merged_tree.to_distance_matrix();
+    let mut out_dm_file = File::create("merged_distance_matrix.csv").expect("IO Error while creating file.");
+
+    out_dm_file.write_all(final_distance_matrix.to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");
+
+
 
 
 }

@@ -47,6 +47,7 @@ impl TreeDistanceMatrix {
     /// Calculates a pair distance matrix based on a Qmatrix for the neighbour joining algorithm.
     /// Results in a new distance matrix with the new pair as a single node.
     pub fn calculate_pair_distance_matrix(i: usize, j: usize, dm: &Array2<f32>) -> Array2<f32> {
+        assert_eq!(dm.shape()[0] > 0, true);
         let mut new_distances: Array2<f32> = Array2::zeros((dm.shape()[0] - 1, dm.shape()[1] - 1));
         // New indexes
         let mut x_n = 0;
@@ -129,11 +130,10 @@ impl TreeDistanceMatrix {
         return idx;
     }
 
-
     /// Performs the neighbour joining algorithm on this distance matrix to create a tree.
     pub fn neighbour_joining(&self) -> Tree {
         let mut distance_matrix = self.distance_matrix.clone();
-        //println!("{:?}", distance_matrix.shape());
+        println!("Started neighbour joining");
         let mut leaf_map_inv_vec: Vec<(usize, String)> = self
             .leaf_map_inv
             .iter()
@@ -220,6 +220,9 @@ impl TreeDistanceMatrix {
                 branches.remove(ri);
             }
 
+            assert_eq!(children.len(), 2);
+            assert_eq!(child_distances.len(), 2);
+
             // Create connections
             let new_branch = graph.add_node(format!(">>{}", n_iters));
             graph.add_edge(new_branch, children[0], child_distances[0]);
@@ -232,8 +235,10 @@ impl TreeDistanceMatrix {
             n_iters += 1;
         }
 
-        //println!("{:?} - {}", distance_matrix.shape(), branches.len());
-        graph.add_edge(node_index(0), branches[(branches.len() - 1)], f32::NAN);
+        println!("Finished neighbour joining.");
+        if branches.len() >= 1 {
+            graph.add_edge(node_index(0), branches[(branches.len() - 1)], f32::NAN);
+        }
 
         Tree { graph }
     }
@@ -319,28 +324,22 @@ impl TreeDistanceMatrix {
     }
 
 
-    /// Returns the index of the first zero in a 1D ArrayView from position 1.
+    /// Returns the index of the first zero in a 1D ArrayView from position 0.
     /// Returns 0 if no zero has been found.
     #[allow(dead_code)]
     pub fn find_first_zero(identity_row: ArrayView1<usize>) -> usize {
-        let mut i = 0;
-        for n in identity_row.iter() {
-            if i == 0 {
-                i += 1;
-                continue;
+        for (i, v) in identity_row.iter().enumerate() {
+            if *v == 0 {
+                return i + 1;
             }
-            if *n == 0 {
-                return i;
-            }
-            i += 1;
         }
         return 0;
     }
 
     /// Returns the indices of the last zeros for two rows in the identity matrix based on the 2 leaf identifiers (l1, l2).
     fn find_final_parent(l1: usize, l2: usize, identity_matrix: &Array2<usize>) -> (usize, usize) {
-        let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, ..]));
-        let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, ..]));
+        let p1 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l1, 1..]));
+        let p2 = TreeDistanceMatrix::find_first_zero(identity_matrix.slice(s![l2, 1..]));
 
         (p1, p2)
     }
@@ -420,6 +419,12 @@ impl TreeDistanceMatrix {
         distance_matrix
     }
 
+    /// Normalize a distance matrix such that the mean everywhere is 1.
+    fn normalize_distance_matrix(matrix : Array2<f32>) -> Array2<f32> {
+        let mean = matrix.sum() / (matrix.shape()[0] as f32 * matrix.shape()[0] as f32);
+        matrix / mean
+    }
+
     /// Generates a full distance matrix in multiprocessing mode with rayon.
     #[cfg(not(feature = "singlecore"))]
     fn generate_full_distance_matrix(
@@ -464,7 +469,8 @@ impl TreeDistanceMatrix {
             rows.iter().map(|row| row.view()).collect();
 
         let distance_matrix = stack(Axis(0), &row_views).expect("Stacking on axis 0 failed.");
-        distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned()
+        let distance_matrix = distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned();
+        TreeDistanceMatrix::normalize_distance_matrix(distance_matrix)
     }
 
     /// Generates a full distance matrix in singlecore mode.
@@ -512,6 +518,7 @@ impl TreeDistanceMatrix {
 
         let mut l = 0;
         let mut dm_idx: Vec<usize> = Vec::new();
+
         for leaf in leaves.iter() {
             if self_leaves.contains(&leaf) {
                 leaf_map.insert(leaf.clone(), l);

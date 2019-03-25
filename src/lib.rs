@@ -1,5 +1,6 @@
 #![feature(try_trait)]
 
+extern crate half;
 extern crate pyo3;
 #[macro_use(s)]
 extern crate ndarray;

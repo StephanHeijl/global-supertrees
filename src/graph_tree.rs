@@ -1,9 +1,11 @@
 
 use ndarray::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f32;
 use regex::Regex;
 use tree_distance_matrix::*;
+
+use utils;
 
 use petgraph::prelude::NodeIndex;
 use petgraph::visit::Dfs;
@@ -318,7 +320,7 @@ impl Tree {
             c += 1;
 
             if chr == '(' {
-                let remainder = tree_string.chars().skip(c).collect();
+                let remainder = tree_string[c..].to_string();
                 let node_count_name = String::from(format!(">>{}", graph.node_count()));
 
                 let branch_node = graph.add_node(node_count_name);
@@ -367,9 +369,7 @@ impl Tree {
                     // We found a leaf without a distance.
                     let n = graph.add_node(current_leaf.clone().trim().to_string());
                     graph.add_edge(parent, n, f32::NAN);
-                } /*else if read_mode == "BDON" {
-                      read_mode = "LEAF";
-                  }*/
+                }
 
                 read_mode = "LEAF";
                 current_leaf = String::new();
@@ -404,6 +404,11 @@ impl Tree {
         return tree;
     }
 
+    pub fn load(filename : String) -> Tree {
+        let tree_file = utils::load_tree_file(String::from(filename));
+        Tree::parse(tree_file)
+    }
+
     /// Returns a new, empty Tree.
     #[allow(dead_code)]
     pub fn new() -> Tree {
@@ -421,6 +426,40 @@ impl Tree {
         return None;
     }
 
+    /// Finds all non trivial clades in a tree.
+    fn get_non_trivial_clades(tree : &Tree) -> Vec<HashSet<String>> {
+        let mut clades : Vec<HashSet<String>> = Vec::new();
+
+        for level in tree.traverse_children() {
+            // Levels trivially map to clades.
+            if level.leaves.len() > 1 {
+                clades.push(utils::vec_to_set(&level.leaves));
+            }
+        }
+        clades
+
+    }
+
+    fn jrf_cost_func(clade_one : &HashSet<String>, clade_two : &HashSet<String>) -> f32 {
+        let k = 1.0;
+        let intersects : Vec<&String> = clade_one.intersection(&clade_two).collect();
+        let diffs : Vec<&String> = clade_one.symmetric_difference(&clade_two).collect();
+
+        2.0 - 2.0 * (intersects.len() as f32 / diffs.len() as f32).powf(k)
+    }
+
+    fn find_matching_clades(clades_one : &Vec<HashSet<String>>, clades_two : & Vec<HashSet<String>>) {
+
+    }
+
+    /// Implements the Generalized Robinson Fould distance metric
+    pub fn rf_distance(&self, other_tree : &Tree) -> f32 {
+        let clades_a = Tree::get_non_trivial_clades(self);
+        let clades_b = Tree::get_non_trivial_clades(other_tree);
+
+        return 0.0;
+    }
+
     /// Finds the number of levels a node is removed from the root node.
     pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
         let mut current_node = n;
@@ -435,7 +474,6 @@ impl Tree {
         } else {
             return levels_from_root - 1;
         }
-
     }
 
     /// Converts this Tree into a distance matrix and returns the resulting TreeDistanceMatrix object.

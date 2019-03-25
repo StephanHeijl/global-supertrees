@@ -35,6 +35,12 @@ pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>)
                 .neighbour_joining()
         })
         .collect();
+//
+//    let new_trees : Vec<Tree> = distance_matrices
+//        .par_iter()
+//        .map(|t| {
+//            t.neighbour_joining()
+//        }).collect();
 
     println!("Started sibling merging");
     sibling_merging(new_trees)
@@ -45,7 +51,7 @@ fn get_tree_size(tree: &Tree) -> usize {
 }
 
 fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
-    let max_ancestor_search = 3;
+    let max_ancestor_search = 1;
 
     trees.sort_unstable_by(
         |a, b|
@@ -58,7 +64,7 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
         None => { return Tree::new(); }  // Return an empty tree if the list is empty
     }
 
-    trees.reverse(); // Start with the largest trees.
+    trees.reverse();  // Start with the largest tree
 
     for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
         let mut iteration_added_siblings = true;

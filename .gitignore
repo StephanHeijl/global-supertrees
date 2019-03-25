@@ -8,3 +8,4 @@
 *.egg-info
 global_supertrees/
 taxids/
+/*.tree
