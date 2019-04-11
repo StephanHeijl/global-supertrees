@@ -420,9 +420,20 @@ impl TreeDistanceMatrix {
     }
 
     /// Normalize a distance matrix such that the mean everywhere is 1.
-    pub fn normalize_distance_matrix(matrix : Array2<f32>) -> Array2<f32> {
+    fn normalize_distance_matrix(matrix : Array2<f32>) -> Array2<f32> {
         let mean = matrix.sum() / (matrix.shape()[0] as f32 * matrix.shape()[0] as f32);
         matrix / mean
+    }
+
+    pub fn normalize(&self) -> TreeDistanceMatrix {
+        let ndm = TreeDistanceMatrix::normalize_distance_matrix(
+            self.distance_matrix.clone()
+        );
+        TreeDistanceMatrix {
+            distance_matrix: ndm,
+            leaf_map: self.leaf_map.clone(),
+            leaf_map_inv: self.leaf_map_inv.clone(),
+        }
     }
 
     /// Generates a full distance matrix in multiprocessing mode with rayon.
