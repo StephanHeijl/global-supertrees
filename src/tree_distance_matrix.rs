@@ -420,7 +420,7 @@ impl TreeDistanceMatrix {
     }
 
     /// Normalize a distance matrix such that the mean everywhere is 1.
-    fn normalize_distance_matrix(matrix : Array2<f32>) -> Array2<f32> {
+    pub fn normalize_distance_matrix(matrix : Array2<f32>) -> Array2<f32> {
         let mean = matrix.sum() / (matrix.shape()[0] as f32 * matrix.shape()[0] as f32);
         matrix / mean
     }
@@ -470,7 +470,7 @@ impl TreeDistanceMatrix {
 
         let distance_matrix = stack(Axis(0), &row_views).expect("Stacking on axis 0 failed.");
         let distance_matrix = distance_matrix.slice(s![..n_leaves, ..n_leaves]).to_owned();
-        TreeDistanceMatrix::normalize_distance_matrix(distance_matrix)
+        distance_matrix
     }
 
     /// Generates a full distance matrix in singlecore mode.

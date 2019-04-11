@@ -280,7 +280,7 @@ mod tests {
             Err(_e) => {
                 mapping = uniprot::load_mapping_file(&taxid_path);
                 utils::cache_mapping(&mapping, &cache_mapping_path).expect(
-                    "Could not cache mapping file."
+                    &format!("Could not cache mapping file: {}", cache_mapping_path)
                 );
                 println!("Cached the mapping file here: {:?} ", cache_mapping_path);
             }
