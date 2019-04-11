@@ -16,31 +16,31 @@ pub fn merge_trees(trees: Vec<Tree>) -> Tree {
 }
 
 pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>) -> Tree {
-    println!("Started mean merging");
-    let tree_leafs: Vec<Vec<String>> = distance_matrices
-        .par_iter()
-        .map(|t| utils::keys_vec(&t.leaf_map))
-        .collect();
-
-    println!("Merging distance matrices");
-    // Create a shared matrix from which every tree can get the new mean distances.
-    let merged_distances = merge_distance_matrices(distance_matrices);
-
-    println!("Replacing values with mean values.");
-    let new_trees: Vec<Tree> = tree_leafs
-        .par_iter()
-        .map(|t| {
-            merged_distances
-                .get_partial_distance_matrix(t)
-                .neighbour_joining()
-        })
-        .collect();
+//    println!("Started mean merging");
+//    let tree_leafs: Vec<Vec<String>> = distance_matrices
+//        .par_iter()
+//        .map(|t| utils::keys_vec(&t.leaf_map))
+//        .collect();
 //
-//    let new_trees : Vec<Tree> = distance_matrices
+//    println!("Merging distance matrices");
+//    // Create a shared matrix from which every tree can get the new mean distances.
+//    let merged_distances = merge_distance_matrices(distance_matrices);
+//
+//    println!("Replacing values with mean values.");
+//    let new_trees: Vec<Tree> = tree_leafs
 //        .par_iter()
 //        .map(|t| {
-//            t.neighbour_joining()
-//        }).collect();
+//            merged_distances
+//                .get_partial_distance_matrix(t)
+//                .neighbour_joining()
+//        })
+//        .collect();
+//
+    let new_trees : Vec<Tree> = distance_matrices
+        .par_iter()
+        .map(|t| {
+            t.neighbour_joining()
+        }).collect();
 
     println!("Started sibling merging");
     sibling_merging(new_trees)
@@ -51,7 +51,7 @@ fn get_tree_size(tree: &Tree) -> usize {
 }
 
 fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
-    let max_ancestor_search = 1;
+    let max_ancestor_search = 2;
 
     trees.sort_unstable_by(
         |a, b|

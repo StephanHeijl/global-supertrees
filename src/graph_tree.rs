@@ -443,9 +443,9 @@ impl Tree {
     fn jrf_cost_func(clade_one : &HashSet<String>, clade_two : &HashSet<String>) -> f32 {
         let k = 1.0;
         let intersects : Vec<&String> = clade_one.intersection(&clade_two).collect();
-        let diffs : Vec<&String> = clade_one.symmetric_difference(&clade_two).collect();
+        let union : Vec<&String> = clade_one.union(&clade_two).collect();
 
-        2.0 - 2.0 * (intersects.len() as f32 / diffs.len() as f32).powf(k)
+        2.0 - 2.0 * (intersects.len() as f32 / union.len() as f32).powf(k)
     }
 
     fn find_matching_clades(clades_one : &Vec<HashSet<String>>, clades_two : & Vec<HashSet<String>>) {
