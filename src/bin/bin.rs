@@ -15,6 +15,7 @@ use rayon::prelude::*;
 use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 use std::collections::BTreeMap;
 use global_supertrees::tree_merging::mean_merge_distance_matrices;
+use global_supertrees::graph_tree::Tree;
 
 
 fn main() {
@@ -43,7 +44,7 @@ fn main() {
         } else if arg.ends_with(".tree") || arg.ends_with(".ftree") || arg.ends_with(".tre") {
             trees.push(arg);
         } else {
-            command = String::from(arg);  // merge, compare
+            command = String::from(arg);  // merge, compare, rebuild
         }
     }
 
@@ -98,6 +99,15 @@ fn main() {
         let mut out_dm_file = File::create("merged_distance_matrix.csv").expect("IO Error while creating file.");
 
         out_dm_file.write_all(final_distance_matrix.to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");
+    } else if command == String::from("rebuild") {
+        let rebuilt_trees : Vec<Tree> = trees.par_iter().map(
+            |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).neighbour_joining()
+        ).collect();
+        for (t, tree) in rebuilt_trees.iter().enumerate() {
+            let mut out_tree_file = File::create(format!("rebuilt_tree_{}.tree", t)).expect("IO Error while creating file.");
+            out_tree_file.write_all(tree.to_newick().as_bytes());
+
+        }
     } else {
         println!("Invalid command: {}", command);
     }

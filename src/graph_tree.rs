@@ -234,7 +234,9 @@ impl Tree {
     pub fn to_newick(&self) -> String {
         for node_idx in self.graph.node_indices() {
             if self.graph.node_weight(node_idx).unwrap() == "<root>" {
-                return Tree::_to_newick(node_idx, &self.graph);
+                let mut newick_str = Tree::_to_newick(node_idx, &self.graph);
+                newick_str.push(';');
+                return newick_str;
             }
         }
         String::new() // Fallback
@@ -426,39 +428,6 @@ impl Tree {
         return None;
     }
 
-    /// Finds all non trivial clades in a tree.
-    fn get_non_trivial_clades(tree : &Tree) -> Vec<HashSet<String>> {
-        let mut clades : Vec<HashSet<String>> = Vec::new();
-
-        for level in tree.traverse_children() {
-            // Levels trivially map to clades.
-            if level.leaves.len() > 1 {
-                clades.push(utils::vec_to_set(&level.leaves));
-            }
-        }
-        clades
-
-    }
-
-    fn jrf_cost_func(clade_one : &HashSet<String>, clade_two : &HashSet<String>) -> f32 {
-        let k = 1.0;
-        let intersects : Vec<&String> = clade_one.intersection(&clade_two).collect();
-        let union : Vec<&String> = clade_one.union(&clade_two).collect();
-
-        2.0 - 2.0 * (intersects.len() as f32 / union.len() as f32).powf(k)
-    }
-
-    fn find_matching_clades(clades_one : &Vec<HashSet<String>>, clades_two : & Vec<HashSet<String>>) {
-
-    }
-
-    /// Implements the Generalized Robinson Fould distance metric
-    pub fn rf_distance(&self, other_tree : &Tree) -> f32 {
-        let clades_a = Tree::get_non_trivial_clades(self);
-        let clades_b = Tree::get_non_trivial_clades(other_tree);
-
-        return 0.0;
-    }
 
     /// Finds the number of levels a node is removed from the root node.
     pub fn get_levels_from_root(&self, n : NodeIndex<u32>) -> usize {
