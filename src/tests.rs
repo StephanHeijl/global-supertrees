@@ -6,6 +6,7 @@ mod tests {
     use graph_tree as tree;
     use tree_distance_matrix;
     use tree_distance_matrix::TreeDistanceMatrix;
+    use neighbour_joining::*;
     use tree_merging;
     use utils;
     use uniprot;
@@ -181,7 +182,7 @@ mod tests {
         let distance_matrix = parsed_tree.to_distance_matrix();
         println!("{}", distance_matrix.to_csv());
 
-        let nj_tree = distance_matrix.neighbour_joining();
+        let nj_tree = neighbour_joining(&distance_matrix);
         assert_eq!(parsed_tree, nj_tree);
 
         println!("{:?}", distance_matrix);
@@ -292,7 +293,7 @@ mod tests {
         println!("Loaded trees");
 
         let normalized_trees : Vec<tree::Tree> = distance_matrices.iter().map(
-            |m| m.merge_organisms(&mapping).neighbour_joining()
+            |m| m.merge_organisms(&mapping).to_tree()
         ).collect();
 
 

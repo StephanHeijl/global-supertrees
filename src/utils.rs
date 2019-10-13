@@ -61,7 +61,7 @@ pub fn cache_mapping(mapping : &BTreeMap<[u8; 10], u32>, path : &String) -> Resu
     Ok(())
 }
 
-pub fn load_cache_mapping(path : &String) -> Result<BTreeMap<[u8; 10], u32>, Box<Error>> {
+pub fn load_cache_mapping(path : &String) -> Result<BTreeMap<[u8; 10], u32>, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut contents : Vec<u8> = Vec::new();
     file.read_to_end(&mut contents)?;

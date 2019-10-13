@@ -12,10 +12,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 use rayon::prelude::*;
-use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 use std::collections::BTreeMap;
 use global_supertrees::tree_merging::mean_merge_distance_matrices;
 use global_supertrees::graph_tree::Tree;
+use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 
 
 fn main() {
@@ -44,15 +44,13 @@ fn main() {
         } else if arg.ends_with(".tree") || arg.ends_with(".ftree") || arg.ends_with(".tre") {
             trees.push(arg);
         } else {
-            command = String::from(arg);  // merge, compare, rebuild
+            command = String::from(arg);  // merge, compare, rebuild, compare
         }
     }
 
     println!("Going to load {} trees.", trees.len());
 
-    if command == String::from("compare") {
-
-    } else if command == String::from("merge") {
+    if command == String::from("merge") {
         let distance_matrices: Vec<TreeDistanceMatrix>;
 
         if mapping.len() == 0 {
@@ -100,13 +98,30 @@ fn main() {
 
         out_dm_file.write_all(final_distance_matrix.to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");
     } else if command == String::from("rebuild") {
-        let rebuilt_trees : Vec<Tree> = trees.par_iter().map(
-            |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).neighbour_joining()
+        let rebuilt_trees: Vec<Tree> = trees.par_iter().map(
+            |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string()).to_tree()
         ).collect();
         for (t, tree) in rebuilt_trees.iter().enumerate() {
             let mut out_tree_file = File::create(format!("rebuilt_tree_{}.tree", t)).expect("IO Error while creating file.");
             out_tree_file.write_all(tree.to_newick().as_bytes());
+        }
+    } else if command == String::from("compare") {
+        println!("Comparing");
+        if trees.len() == 2 {
+            println!("Converting");
+            let distance_matrices : Vec<TreeDistanceMatrix> = trees.par_iter().map(
+                |t| global_supertrees::utils::convert_file_to_distance_matrix(t.to_string())
+            ).collect();
 
+
+            let mut out_dm_file_a = File::create("dm_a.csv").expect("IO Error while creating file.");
+            out_dm_file_a.write_all(distance_matrices[0].to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");
+
+            let mut out_dm_file_b = File::create("dm_b.csv").expect("IO Error while creating file.");
+            out_dm_file_b.write_all(distance_matrices[1].to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");
+
+        } else {
+            println!("Too many trees, 2 are needed.");
         }
     } else {
         println!("Invalid command: {}", command);

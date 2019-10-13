@@ -1,6 +1,6 @@
 
 use ndarray::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::f32;
 use regex::Regex;
 use tree_distance_matrix::*;
@@ -14,12 +14,14 @@ use petgraph::{Graph, Incoming};
 use petgraph::visit::EdgeRef;
 use petgraph::dot::{Dot, Config};
 
+
 /// A tree structure, based on the pet-graph Graph structure. Using this ensures that there are no
 /// loops in the graph and that a tree-like structure is guaranteed.
 #[derive(Debug)]
 pub struct Tree {
     pub graph : Graph<String, f32>,
 }
+
 
 /// A single level on a tree. Contains leaves with distances and a notion of distance from the root
 /// of the tree.
@@ -443,6 +445,27 @@ impl Tree {
         } else {
             return levels_from_root - 1;
         }
+    }
+
+    /// Converts this tree into a connection matrix
+    pub fn to_connection_matrix(&self) -> Array2<f32> {
+        let mut matrix_size: usize = 0;
+
+        let mut connection_matrix: Array2<f32> = Array2::zeros((n_leaves, n_leaves));
+
+        for child in self.traverse_children() {
+            for leaf in child.leaves.iter() {
+                n_leaves += 1;
+            }
+        }
+
+        for child in self.traverse_children() {
+            for leaf in child.leaves.iter() {
+
+            }
+        }
+
+        connection_matrix
     }
 
     /// Converts this Tree into a distance matrix and returns the resulting TreeDistanceMatrix object.

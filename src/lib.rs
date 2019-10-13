@@ -14,6 +14,7 @@ extern crate bincode;
 pub mod test_tree_parsing;
 pub mod tests;
 
+pub mod neighbour_joining;
 pub mod graph_tree;
 pub mod tree_distance_matrix;
 pub mod tree_merging;

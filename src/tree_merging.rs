@@ -10,7 +10,7 @@ use utils;
 
 pub fn merge_trees(trees: Vec<Tree>) -> Tree {
     let distance_matrices: Vec<TreeDistanceMatrix> =
-        trees.par_iter().map(|t| t.to_distance_matrix().normalize()).collect();
+        trees.par_iter().map(|t| t.to_distance_matrix()).collect();
 
     mean_merge_distance_matrices(distance_matrices)
 }
@@ -32,7 +32,7 @@ pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>)
         .map(|t| {
             merged_distances
                 .get_partial_distance_matrix(t)
-                .neighbour_joining()
+                .to_tree()
         })
         .collect();
 
