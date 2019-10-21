@@ -448,25 +448,25 @@ impl Tree {
     }
 
     /// Converts this tree into a connection matrix
-    pub fn to_connection_matrix(&self) -> Array2<f32> {
-        let mut matrix_size: usize = 0;
-
-        let mut connection_matrix: Array2<f32> = Array2::zeros((n_leaves, n_leaves));
-
-        for child in self.traverse_children() {
-            for leaf in child.leaves.iter() {
-                n_leaves += 1;
-            }
-        }
-
-        for child in self.traverse_children() {
-            for leaf in child.leaves.iter() {
-
-            }
-        }
-
-        connection_matrix
-    }
+//    pub fn to_connection_matrix(&self) -> Array2<f32> {
+//        let mut matrix_size: usize = 0;
+//
+//        let mut connection_matrix: Array2<f32> = Array2::zeros((n_leaves, n_leaves));
+//
+//        for child in self.traverse_children() {
+//            for leaf in child.leaves.iter() {
+//                n_leaves += 1;
+//            }
+//        }
+//
+//        for child in self.traverse_children() {
+//            for leaf in child.leaves.iter() {
+//
+//            }
+//        }
+//
+//        connection_matrix
+//    }
 
     /// Converts this Tree into a distance matrix and returns the resulting TreeDistanceMatrix object.
     pub fn to_distance_matrix(&self) -> TreeDistanceMatrix {

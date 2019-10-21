@@ -413,7 +413,7 @@ impl TreeDistanceMatrix {
             let row = input_matrix.select(
                 Axis(0),
                 idx.as_slice()
-            ).mean_axis(Axis(0));
+            ).mean_axis(Axis(0)).expect("Could not mean axis 0, no columns");
 
             col_mat.slice_mut(s![*i, ..]).assign(&row);
         }
@@ -421,7 +421,9 @@ impl TreeDistanceMatrix {
         // Mean all the columns in the distance matrix.
         for (i, tax_id) in &enum_tax_ids {
             let idx = utils::get_indices_vec(&all_tax_ids, *tax_id);
-            let row = col_mat.select(Axis(1), idx.as_slice()).mean_axis(Axis(1));
+            let row = col_mat.select(
+                Axis(1), idx.as_slice()
+            ).mean_axis(Axis(1)).expect("Could not mean axis 1, no rows.");
             final_mat.slice_mut(s![*i, ..]).assign(&row);
         }
 

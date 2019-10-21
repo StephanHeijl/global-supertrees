@@ -2,7 +2,6 @@
 
 extern crate half;
 extern crate pyo3;
-#[macro_use(s)]
 extern crate ndarray;
 extern crate numpy;
 extern crate rayon;
@@ -28,7 +27,7 @@ use utils::convert_file_to_distance_matrix;
 use numpy::{IntoPyArray, PyArray2};
 
 
-#[pymodinit]
+#[pymodule]
 fn rust_ext(_py: Python, m: &PyModule) -> PyResult<()> {
     fn convert_file_to_dm(fname : String) -> Array2<f32> {
         let dm = convert_file_to_distance_matrix(fname);
@@ -36,7 +35,7 @@ fn rust_ext(_py: Python, m: &PyModule) -> PyResult<()> {
     }
 
     // wrapper of `axpy`
-    #[pyfn(m, "convert_file_to_distance_matrix")]
+    #[pyfunction]
     fn convert_file_to_distance_matrix_py(py: Python, fname: String) -> Py<PyArray2<f32>> {
         convert_file_to_dm(fname).into_pyarray(py).to_owned()
     }

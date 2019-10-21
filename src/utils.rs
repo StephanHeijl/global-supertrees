@@ -54,7 +54,7 @@ pub fn get_indices_vec<T: std::cmp::Eq + std::clone::Clone>(vector : &Vec<T>, va
 }
 
 /* Caching utilities */
-pub fn cache_mapping(mapping : &BTreeMap<[u8; 10], u32>, path : &String) -> Result<(), Box<Error>> {
+pub fn cache_mapping(mapping : &BTreeMap<[u8; 10], u32>, path : &String) -> Result<(), Box<dyn Error>> {
     let serialized = serialize(mapping).unwrap();
     let mut file = File::create(&path)?;
     file.write_all(&serialized)?;

@@ -22,10 +22,10 @@ mod tests {
 
     #[test]
     fn test_find_first_zero() {
-        let arr_one = Array::from_vec(vec![0, 1, 2, 3, 4, 5]);
-        let arr_two = Array::from_vec(vec![0, 1, 2, 0, 4, 5]);
-        let arr_three = Array::from_vec(vec![0, 1, 2, 3, 4, 0]);
-        let arr_four = Array::from_vec(vec![1, 2, 3, 4, 5, 6]);
+        let arr_one = Array::from(vec![0, 1, 2, 3, 4, 5]);
+        let arr_two = Array::from(vec![0, 1, 2, 0, 4, 5]);
+        let arr_three = Array::from(vec![0, 1, 2, 3, 4, 0]);
+        let arr_four = Array::from(vec![1, 2, 3, 4, 5, 6]);
         assert_eq!(
             tree_distance_matrix::TreeDistanceMatrix::find_first_zero(arr_one.slice(s![1..]).view()),
             0
