@@ -9,8 +9,8 @@ use std::path::Path;
 use std::time;
 
 use bincode::{serialize, deserialize};
-use graph_tree;
-use tree_distance_matrix::TreeDistanceMatrix;
+use crate::graph_tree;
+use crate::tree_distance_matrix::TreeDistanceMatrix;
 
 
 pub fn load_tree_file(filename: String) -> String {

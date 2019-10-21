@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use graph_tree as tree;
+    use crate::graph_tree as tree;
 
     #[test]
     fn test_construct_tree_from_file_1() {

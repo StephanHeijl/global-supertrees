@@ -3,13 +3,13 @@ mod tests {
 
     use ndarray::prelude::*;
     use rayon::prelude::*;
-    use graph_tree as tree;
-    use tree_distance_matrix;
-    use tree_distance_matrix::TreeDistanceMatrix;
-    use neighbour_joining::*;
-    use tree_merging;
-    use utils;
-    use uniprot;
+    use crate::graph_tree as tree;
+    use crate::tree_distance_matrix;
+    use crate::tree_distance_matrix::TreeDistanceMatrix;
+    use crate::neighbour_joining::*;
+    use crate::tree_merging;
+    use crate::utils;
+    use crate::uniprot;
     use std::collections::BTreeMap;
 
     #[test]

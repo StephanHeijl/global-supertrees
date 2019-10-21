@@ -3,8 +3,8 @@ use std::f32;
 use petgraph::graph::node_index;
 use petgraph::Graph;
 use petgraph::prelude::NodeIndex;
-use tree_distance_matrix::TreeDistanceMatrix;
-use graph_tree::Tree;
+use crate::tree_distance_matrix::TreeDistanceMatrix;
+use crate::graph_tree::Tree;
 
 
 /// Calculates a Q matrix based on a distance matrix for the neighbour joining algorithm.
@@ -172,7 +172,8 @@ pub fn neighbour_joining(dm : &TreeDistanceMatrix) -> Tree {
             child_distances.push(pair_leaf_distances.0);
         } else {
             rem_leaves.push(lowest_pair[0]);
-            children.push(node_index(leaf_map_inv_vec.get(lowest_pair[0]).expect("Node with first lowest pair ID does not exist.").0 + 1));
+            children.push(node_index(leaf_map_inv_vec.get(lowest_pair[0]).expect(
+                "Node with first lowest pair ID does not exist.").0 + 1));
             child_distances.push(pair_leaf_distances.0);
         }
 
@@ -184,7 +185,8 @@ pub fn neighbour_joining(dm : &TreeDistanceMatrix) -> Tree {
             child_distances.push(pair_leaf_distances.1);
         } else {
             rem_leaves.push(lowest_pair[1]);
-            children.push(node_index(leaf_map_inv_vec.get(lowest_pair[1]).expect("Node with second lowest pair ID does not exist.").0 + 1));
+            children.push(node_index(leaf_map_inv_vec.get(lowest_pair[1]).expect(
+                "Node with second lowest pair ID does not exist.").0 + 1));
             child_distances.push(pair_leaf_distances.1);
         }
 

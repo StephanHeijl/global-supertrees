@@ -9,10 +9,10 @@ use std::f32;
 
 use regex::Regex;
 
-use neighbour_joining::*;
-use graph_tree::*;
-use uniprot::*;
-use utils;
+use crate::neighbour_joining::*;
+use crate::graph_tree::*;
+use crate::uniprot::*;
+use crate::utils;
 
 
 #[derive(Debug)]

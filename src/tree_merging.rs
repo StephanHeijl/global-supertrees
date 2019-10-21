@@ -2,11 +2,12 @@ use rayon::prelude::*;
 use ndarray::prelude::*;
 use std::collections::HashSet;
 use std::f32;
-use graph_tree::*;
-use tree_distance_matrix::*;
+use crate::graph_tree::*;
+use crate::tree_distance_matrix::*;
+use crate::utils;
+use rand::prelude::*;
 use petgraph::visit::Dfs;
 use petgraph::graph::node_index;
-use utils;
 
 pub fn merge_trees(trees: Vec<Tree>) -> Tree {
     let distance_matrices: Vec<TreeDistanceMatrix> =
@@ -43,28 +44,22 @@ pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>)
 //        }).collect();
 
     println!("Started sibling merging");
-    sibling_merging(new_trees)
+    sibling_merging(new_trees, 10)
 }
 
-fn get_tree_size(tree: &Tree) -> usize {
-    return tree.traverse_children().len();
-}
 
-fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
+fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
     let max_ancestor_search = 3;
 
-    trees.sort_unstable_by(
-        |a, b|
-            get_tree_size(a).cmp(&get_tree_size(b))
-    );
     let mut base_tree : Tree;
+    let mut tree : &Tree;
+    let n_trees = trees.len();
+    let n_iter = n_trees * bootstrap_n;
 
     match trees.pop() {
         Some(t) => { base_tree = t; }
         None => { return Tree::new(); }  // Return an empty tree if the list is empty
     }
-
-    trees.reverse();  // Start with the largest tree
 
     let mut unmatched_leaves : HashSet<String> = HashSet::new();
     for tree in trees.iter() {
@@ -73,12 +68,17 @@ fn sibling_merging(mut trees: Vec<Tree>) -> Tree {
         }
     }
 
+
+
     for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
         let mut iteration_added_siblings = true;
         while iteration_added_siblings {  // Iteratively attempt to add more siblings
             iteration_added_siblings = false;
             println!("==({})==", anc);
-            for tree in trees.iter() {
+            let mut rng = rand::thread_rng();
+
+            for _ in 0..n_iter {
+                tree = trees.iter().choose(&mut rng).unwrap();
                 let mut dfs = Dfs::new(&tree.graph,  node_index(0));
 
                 while let Some(node) = dfs.next(&tree.graph) {

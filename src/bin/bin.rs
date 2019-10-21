@@ -5,17 +5,18 @@ extern crate petgraph;
 extern crate regex;
 extern crate serde;
 extern crate bincode;
-extern crate global_supertrees;
+extern crate rand;
 
 use std::f32;
 use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 use rayon::prelude::*;
+use rand::prelude::*;
 use std::collections::BTreeMap;
-use global_supertrees::tree_merging::mean_merge_distance_matrices;
-use global_supertrees::graph_tree::Tree;
-use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
+use crate::tree_merging::mean_merge_distance_matrices;
+use crate::graph_tree::Tree;
+use crate::tree_distance_matrix::TreeDistanceMatrix;
 
 
 fn main() {
