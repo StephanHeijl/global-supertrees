@@ -6,6 +6,7 @@ use crate::graph_tree::*;
 use crate::tree_distance_matrix::*;
 use crate::utils;
 use rand::prelude::*;
+use rand::seq::SliceRandom;
 use petgraph::visit::Dfs;
 use petgraph::graph::node_index;
 
@@ -18,7 +19,7 @@ pub fn merge_trees(trees: Vec<Tree>) -> Tree {
 
 pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>) -> Tree {
     println!("Started mean merging");
-    let tree_leafs: Vec<Vec<String>> = distance_matrices
+    let leaves: Vec<Vec<String>> = distance_matrices
         .par_iter()
         .map(|t| utils::keys_vec(&t.leaf_map))
         .collect();
@@ -28,7 +29,7 @@ pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>)
     let merged_distances = merge_distance_matrices(distance_matrices);
 
     println!("Replacing values with mean values.");
-    let new_trees: Vec<Tree> = tree_leafs
+    let new_trees: Vec<Tree> = leaves
         .par_iter()
         .map(|t| {
             merged_distances
@@ -44,17 +45,35 @@ pub fn mean_merge_distance_matrices(distance_matrices : Vec<TreeDistanceMatrix>)
 //        }).collect();
 
     println!("Started sibling merging");
-    sibling_merging(new_trees, 10)
+    let mut merged_trees : Vec<Tree> = vec![0, 1, 2, 3, 4].par_iter().map(
+        |seed| sibling_merging(new_trees.clone(), 3, *seed)
+    ).collect();
+    println!();
+
+    merged_trees.sort_by(
+        |a, b| a.get_leaves().len().cmp(&b.get_leaves().len())
+    );
+
+    for tree in merged_trees.iter() {
+        print!("{}, ", tree.get_leaves().len());
+    }
+
+    merged_trees.pop().unwrap()
 }
 
 
-fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
+fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize, seed: usize) -> Tree {
     let max_ancestor_search = 3;
 
     let mut base_tree : Tree;
     let mut tree : &Tree;
     let n_trees = trees.len();
     let n_iter = n_trees * bootstrap_n;
+
+    let seed_arr: [u8; 32] = [seed as u8; 32];
+    let mut rng: StdRng = SeedableRng::from_seed(seed_arr);
+
+    trees.shuffle(&mut rng);
 
     match trees.pop() {
         Some(t) => { base_tree = t; }
@@ -68,14 +87,13 @@ fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
         }
     }
 
-
+    base_tree.to_distance_matrix().distance_matrix.map(|x : &f32| assert!(!x.is_nan()));
 
     for anc in 1..(max_ancestor_search + 1) {  // Iterates up the levels in the tree where siblings are shared
         let mut iteration_added_siblings = true;
         while iteration_added_siblings {  // Iteratively attempt to add more siblings
             iteration_added_siblings = false;
             println!("==({})==", anc);
-            let mut rng = rand::thread_rng();
 
             for _ in 0..n_iter {
                 tree = trees.iter().choose(&mut rng).unwrap();
@@ -94,11 +112,10 @@ fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
                     } else {
                         // Encountered a leaf node.
                         if !base_leaves.contains(node_name) {
-                            println!("No overlap between base tree and {}", node_name);
+                            //println!("No overlap between base tree and {}", node_name);
                             continue;  // Skip if there is no overlap.
                         }
                         unmatched_leaves.remove(node_name);
-
 
                         let base_node = base_tree.find_node_idx(node_name).unwrap();
                         let siblings = Tree::get_node_siblings(&tree.graph, node, anc);
@@ -113,7 +130,7 @@ fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
                                     sibling_distance,
                                     anc
                                 );
-                                println!("Added sibling {}", sibling_name);
+                                //println!("Added sibling {}", sibling_name);
                                 unmatched_leaves.remove(sibling_name);
                                 iteration_added_siblings = true;
                             }
@@ -123,6 +140,8 @@ fn sibling_merging(mut trees: Vec<Tree>, bootstrap_n: usize) -> Tree {
             }
         }
     }
+
+    base_tree.to_distance_matrix().distance_matrix.map(|x : &f32| assert!(!x.is_nan()));
 
     println!("Unmatched leaves: {:?}", unmatched_leaves);
 
@@ -164,6 +183,7 @@ fn merge_distance_matrices(dms: Vec<TreeDistanceMatrix>) -> TreeDistanceMatrix {
 
     // Get the average distances.
     let average_matrix = overlapping_distance_matrix / count_matrix;
+
     return TreeDistanceMatrix::new_from_matrix_and_leaves(
         average_matrix,
         all_leaves.iter().map(|l| l.clone()).collect(),

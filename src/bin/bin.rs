@@ -14,9 +14,9 @@ use std::env;
 use rayon::prelude::*;
 use rand::prelude::*;
 use std::collections::BTreeMap;
-use crate::tree_merging::mean_merge_distance_matrices;
-use crate::graph_tree::Tree;
-use crate::tree_distance_matrix::TreeDistanceMatrix;
+use global_supertrees::tree_merging::mean_merge_distance_matrices;
+use global_supertrees::graph_tree::Tree;
+use global_supertrees::tree_distance_matrix::TreeDistanceMatrix;
 
 
 fn main() {
@@ -65,7 +65,6 @@ fn main() {
             ).collect();
         }
 
-
 //        for dm in distance_matrices.iter() {
 //            let mean = dm.distance_matrix.sum() / (dm.shape()[0] as f32 * dm.shape()[0] as f32);
 //            let mut min = f32::MAX;
@@ -95,6 +94,9 @@ fn main() {
         println!("Created tree with {} leaves.", merged_tree.get_leaves().len());
 
         let final_distance_matrix = merged_tree.to_distance_matrix();
+
+        assert!(!final_distance_matrix.to_csv().contains("NaN"));
+
         let mut out_dm_file = File::create("merged_distance_matrix.csv").expect("IO Error while creating file.");
 
         out_dm_file.write_all(final_distance_matrix.to_csv().as_bytes()).expect("IO Error while writing merged distance matrix.");

@@ -22,6 +22,14 @@ pub struct Tree {
     pub graph : Graph<String, f32>,
 }
 
+impl Clone for Tree {
+    fn clone(&self) -> Tree {
+        Tree {
+            graph: self.graph.clone()
+        }
+    }
+}
+
 
 /// A single level on a tree. Contains leaves with distances and a notion of distance from the root
 /// of the tree.
@@ -140,8 +148,13 @@ impl Tree {
         for _anc in 0..n_removed {
             match Tree::_get_parent_edge(graph, current_parent_node) {
                 Some(e) => {
-                    current_parent_node = e.source();
-                    distance += e.weight();
+                    if e.weight().is_nan() {
+                        println!("Node {:?} has a NaN distance. ", node);
+                        break;
+                    } else {
+                        current_parent_node = e.source();
+                        distance += e.weight();
+                    }
                 },
                 None => { break }
             }
@@ -254,7 +267,7 @@ impl Tree {
             if nw.starts_with(">>") {
                 newick.push_str(&Tree::_to_newick(nb_node, graph));
             } else {
-                newick.push_str(&format!("\"{}\":{}", nw, edge.weight()));
+                newick.push_str(&format!("{}:{}", nw, edge.weight()));
             }
 
             newick.push_str(",");
@@ -544,11 +557,11 @@ impl Tree {
             previous_level = current_level;
         }
 
-        let distance_matrix = TreeDistanceMatrix::new(
-            leaf_distance_matrix, identity_matrix, leaf_map
-        );
+        //leaf_distance_matrix.map(| x: &f32 | assert!(!x.is_nan()));
 
-        distance_matrix
+        TreeDistanceMatrix::new(
+            leaf_distance_matrix, identity_matrix, leaf_map
+        )
     }
 
     /// Converts the tree into a dot string that can be visualized with graph-viz.

@@ -333,6 +333,8 @@ impl TreeDistanceMatrix {
             }
         }
 
+        ndm.map(| x | assert!(!x.is_nan()));
+
         return TreeDistanceMatrix::new_from_matrix_and_leaves(ndm, leaves.to_vec());
     }
 
