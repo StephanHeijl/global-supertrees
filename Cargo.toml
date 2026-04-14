@@ -21,7 +21,7 @@ bincode = "1.0"
 rayon = "1.1"
 petgraph = "0.4.13"
 regex = "1"
-rand = "0.7"
+rand = "0.9"
 half = { version = "1.3.0" }
 
 [dependencies.pyo3]
